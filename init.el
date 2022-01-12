@@ -46,6 +46,9 @@
 (set-face-attribute 'default nil
 		    :family "Menlo"
 		    :height 120)
+(set-face-attribute 'fixed-pitch nil
+		    :family "Menlo"
+		    :height 120)
 (set-face-attribute 'variable-pitch nil
 		    :family "Lucida Grande"
 		    :height 130)
@@ -511,7 +514,7 @@ Version 2018-09-10"
  "A-C-k" 'my-scroll-other-window
  "A-l" 'forward-char
  "A-L" 'forward-sentence
- ;;A-m  C-u
+ ;;A-m  C-n
  ;;A-n  C-g
  "A-o" 'forward-word
  "A-O" 'forward-sexp
@@ -558,6 +561,7 @@ Version 2018-09-10"
 (define-key key-translation-map (kbd "A-m") (kbd "C-u"))
 (define-key key-translation-map (kbd "A-/") (kbd "C-h"))
 (define-key minibuffer-local-map (kbd "A-a") 'mark-whole-buffer)
+
 
 ;; file and system actions (leading key A-q)
 (defun open-user-init-file () (interactive)
@@ -731,38 +735,92 @@ With unversal prefix, turn off latex preview mode."
 	  (save-buffer)
 	  (TeX-command "LatexMk" 'TeX-master-file)
 	  (latex-preview-pane-update))
-      (latex-preview-pane-mode))
-    )
-    (latex-preview-pane-enable)
-  )
+      (latex-preview-pane-mode)))
+    (latex-preview-pane-enable))
+
+;; cdlatex
+(use-package cdlatex
+  :config
+  (setq cdlatex-takeover-subsuperscript nil)
+  (setq cdlatex-math-symbol-alist
+	'((?\s "\\quad" "\\qquad")
+	  (?1 "\\frac{?}{}" "\\dfrac{?}{}")
+	  (?2 "\\sqrt{?}")
+	  (?5 "\\hbar")
+	  (?6 "\\partial")
+	  (?7 "\\Braket{?}")
+	  (?q "\\chi")
+	  (?Q "\\Chi")
+	  (?j "\\theta" "\\vartheta")
+	  (?J "\\Theta" "\\varTheta")
+	  (?i "\\iota")
+	  (?x "\\xi")
+	  (?X "\\Xi")
+	  (?w "\\omega")
+	  (?W "\\Omega")
+	  (?\( "\\left(?\\right)")
+	  (?\) "\\right)")
+	  (?\[ "\\left[?\\right]")
+	  (?\] "\\right]")
+	  (?\{ "\\left\\\{?\\right\}")
+	  (?\} "\\right\}")
+	  (?. "\\cdot" "\\cdots")
+	  (?< "\\leftarrow" "\\Leftarrow" "\\longleftarrow")
+	  (?> "\\rightarrow" "\\Rightarrow" "\\longrightarrow")))
+
+  (defun my-cdlatex-read-char-with-help (alist start-level max-level prompt-format
+					       header-format prefix bindings)
+    "Read a char from keyboard and provide help if necessary.
+    Also make space not advance to next level (I use space to insert \\quad)"
+    (interactive)
+    (let (char (help-is-on nil)
+	       (level start-level))
+      (catch 'exit
+	(save-window-excursion
+          (while t
+            (if help-is-on
+		(progn
+                  (cdlatex-turn-on-help
+                   (concat (format header-format prefix)
+			   (if (assoc level bindings)
+			       (concat "  Direct binding are `"
+				       (cdr (assoc level bindings)) "' etc.")
+			     ""))
+                   level alist help-is-on nil)))
+	    (message prompt-format level max-level)
+	    (if (and (not help-is-on)
+		     (sit-for cdlatex-auto-help-delay))
+		(setq char ?\?)
+	      (setq char (read-key)))
+            (cond
+	     ((= char ?\C-g)
+	      (keyboard-quit))
+             ((= char ?\?)
+	      (if help-is-on
+                  (progn
+                    (setq help-is-on (+ help-is-on (- (window-height) 1)))
+                    (if (> help-is-on (count-lines (point-min) (point-max)))
+			(setq help-is-on 1)))
+		(setq help-is-on 1)))
+             ((equal char prefix)
+	      (setq level (if (= level cdlatex-math-symbol-no-of-levels)
+			      1
+                            (1+ level))))
+             (t (throw 'exit (cons char level)))))))))
+  (advice-add 'cdlatex-read-char-with-help :override #'my-cdlatex-read-char-with-help)
+
+  ;; make the quote modification work with A-n (read-key respects key-translation-map but read-char does not)
+  (defun read-char->read-key (orig-fun &rest r)
+    (cl-letf (((symbol-function 'read-char) #'read-key))
+      (apply orig-fun r)))
+  (advice-add 'cdlatex-math-modify :around #'read-char->read-key))
+
 
 ;; common helper functions for latex and org mode
 
-;; make `1 insert \frac{}{}, not just \frac (need this in org mode)
-(setq LaTeX-math-list
-      '((?\s "quad" "" nil)
-	(?2 "sqrt" "" nil)
-	(?3 "leftrightarrow" "" nil)
-	(?5 "hbar" "" nil)
-	(?6 "partial" "" nil)
-	(?= "equiv" "" nil)
-	;; macros have to be put at the end for unknown reasons
-	(?1 insert-frac "" nil)
-	(?7 insert-braket-latex "" nil)
-	(?0 insert-left-right-pair "" nil)
-	(?\( (lambda () (interactive) (insert-left-right-pair ?\()) "" nil)
-	(?\[ (lambda () (interactive) (insert-left-right-pair ?\[)) "" nil)
-	(?\{ (lambda () (interactive) (insert-left-right-pair ?\{)) "" nil)
-	(?c latex-math-fontify "" nil)))
-
-(defun insert-frac ()
-  (interactive)
-  (insert "\\frac{}{}")
-  (backward-char 3))
-
 (defun insert-left-right-pair (&optional pair)
   "with the pair given (one of (, [, {, |, . ),
-insert the \left \right pair of the indicated pair.
+insert the left right pair of the indicated pair.
 if the active region is set, wrap the pair around the region.
 without the pair given, prompt the user for inseted pair."
   (interactive "clnsert left-right pair: ")
@@ -796,13 +854,7 @@ without the pair given, prompt the user for inseted pair."
 	  (backward-char 9)
 	(backward-char 8)))))
 
-(defun insert-braket-latex ()
-  (interactive)
-  (progn
-    (insert "\\Braket{}")
-    (backward-char 1)))
-
-(defun latex-mode-backward-delete-word ()
+(defun latex-backward-delete-word ()
   (interactive)
   (backward-kill-word 1)
   (when (eq (preceding-char) ?\\)
@@ -812,20 +864,12 @@ without the pair given, prompt the user for inseted pair."
   (interactive)
   (find-file-other-window "~/.emacs.d/symbols.pdf"))
 
-(defun latex-math-fontify ()
-  (interactive)
-  (let ((input (read-char-choice "fontify (Cal/Bold/Italic/Frak): " '(?c ?b ?i ?f))))
-    (cond ((eq input ?c) (insert "\\mathcal{}"))
-	  ((eq input ?b) (insert "\\mathbb{}"))
-	  ((eq input ?i) (insert "\\mathit{}"))
-	  ((eq input ?f) (insert "\\mathfrak{}")))
-    (backward-char 1)))
-
 ;; auctex
 (use-package tex-site :straight auctex
   :defer t
   :config
-  (add-hook 'LaTeX-mode-hook 'LaTeX-math-mode)
+  ;; (add-hook 'LaTeX-mode-hook 'LaTeX-math-mode)
+  (add-hook 'LaTeX-mode-hook 'turn-on-cdlatex)
   (add-hook 'LaTeX-mode-hook 'TeX-source-correlate-mode)
   (add-hook 'LaTeX-mode-hook 'smartparens-mode)
   (add-hook 'LaTeX-mode-hook (lambda () (variable-pitch-mode 1)))
@@ -840,7 +884,7 @@ without the pair given, prompt the user for inseted pair."
     "turn off automatic labeling"
     (apply orig-fun args '(t)))
   (advice-add 'LaTeX-label :around 'LaTeX-no-insert-label)
-
+      
   ;; latexmk setup
   (use-package auctex-latexmk)
   (auctex-latexmk-setup)
@@ -851,7 +895,7 @@ without the pair given, prompt the user for inseted pair."
   (:keymaps 'LaTeX-mode-map
 	    "A-e" 'latex-mode-backward-delete-word)
   (:keymaps 'LaTeX-math-mode-map
-	    "A-e" 'latex-mode-backward-delete-word
+	    "A-e" 'latex-backward-delete-word
 	    "` <return>" 'latex-math-symobl-lookup)
   (:keymaps 'LaTeX-mode-map :prefix "A-w"
 	    "A-w" 'TeX-command-master
@@ -872,8 +916,7 @@ without the pair given, prompt the user for inseted pair."
 	    "RET" 'TeX-insert-macro
 	    "*" 'LaTeX-mark-section
 	    "." 'LaTeX-mark-environment
-	    )
-  )
+	    ))
 
 
 ;; org settings
@@ -883,7 +926,8 @@ without the pair given, prompt the user for inseted pair."
   (require 'tex-mode)
   (require 'latex)
   (add-hook 'org-mode-hook 'smartparens-mode)
-  (add-hook 'org-mode-hook 'latex-math-mode)
+  (add-hook 'org-mode-hook 'org-cdlatex-mode)
+  ;; (add-hook 'org-mode-hook 'latex-math-mode)
   (add-hook 'org-mode-hook (lambda () (variable-pitch-mode 1)))
   (add-hook 'org-mode-hook (lambda () (display-line-numbers-mode -1)))
   (add-hook 'org-mode-hook (lambda () (setq prettify-symbols-alist tex--prettify-symbols-alist)))
@@ -900,10 +944,7 @@ without the pair given, prompt the user for inseted pair."
 	'(:foreground default :background default :scale 1.4 :html-foreground "Black" :html-background "Transparent" :html-scale 1.0 :matchers
 	     ("begin" "$1" "$" "$$" "\\(" "\\[")))
   (setq org-latex-create-formula-image-program 'dvipng)
-  (setq org-highlight-latex-and-related '(latex script entities))
-  ;; (let ((color (cdr (assoc "zenburn-red" zenburn-default-colors-alist))))
-  ;;   (set-face-attribute 'org-latex-and-related nil
-  ;;			:foreground color))
+  (setq org-highlight-latex-and-related '(native latex script entities))
 
   ;; function to insert latex environment in org-mode
   (setq my-org-environment-default "align*")
@@ -983,7 +1024,9 @@ without the pair given, prompt the user for inseted pair."
 	    "A-p" 'org-latex-preview
 	    "A-i" 'my-org-insert-environment
 	    "A-r" 'org-redisplay-inline-images
-	    ))
+	    )
+  (:keymaps 'org-cdlatex-mode-map
+	    "A-e" 'latex-backward-delete-word))
 
 
 ;; citar
@@ -1018,8 +1061,7 @@ without the pair given, prompt the user for inseted pair."
 	      ("k" . arxiv-next-entry))
   :hook
   ('arxiv-mode . 'centaur-tabs-local-mode)
-  ('arxiv-abstract-mode . 'centaur-tabs-local-mode)
-  )
+  ('arxiv-abstract-mode . 'centaur-tabs-local-mode))
 
 ;; projectile
 (use-package projectile
