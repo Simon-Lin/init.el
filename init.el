@@ -320,14 +320,19 @@
 (add-hook 'prog-mode-hook 'flyspell-prog-mode)
 
 (use-package company
+  :config
+  (use-package company-posframe)
+  (setq company-posframe-show-metadata nil
+	company-posframe-show-indicator nil)
   :bind (:map company-active-map
 	      ("A-k" . company-select-next)
 	      ("A-i" . company-select-previous)
 	      ("TAB" . company-complete-common-or-cycle)
 	      ("<backtab>" . (lambda () (interactive) (company-complete-common-or-cycle -1))))
   :hook ((prog-mode . company-mode)
-	 (text-mode . company-mode))
-  )
+	 (text-mode . company-mode)
+	 (company-mode . company-posframe-mode)))
+
 (use-package company-math
   :defer t
   :init
@@ -514,7 +519,7 @@ Version 2018-09-10"
  "A-C-k" 'my-scroll-other-window
  "A-l" 'forward-char
  "A-L" 'forward-sentence
- ;;A-m  C-n
+ ;;A-m  C-u
  ;;A-n  C-g
  "A-o" 'forward-word
  "A-O" 'forward-sexp
@@ -570,14 +575,14 @@ Version 2018-09-10"
 (general-define-key :prefix "A-q"
 		    "TAB" 'indent-rigidly
 		    "A-a" 'mark-whole-buffer
-		    ;;A-b/B citar
+		    ;;A-b/b citar
 		    "A-c" 'save-buffers-kill-emacs
 		    ;;A-C  restart-emacs
 		    "A-d" 'dired
 		    "A-e" 'eval-last-sexp
 		    "e"   'eval-defun
 		    "A-f" 'find-file
-		    "A-F" 'find-file-other-window
+		    "f" 'find-file-other-window
 		    ;;A-g  magit
 		    "A-i" 'open-user-init-file
 		    "A-m" 'consult-bookmark
@@ -751,6 +756,7 @@ With unversal prefix, turn off latex preview mode."
 	  (?7 "\\Braket{?}")
 	  (?q "\\chi")
 	  (?Q "\\Chi")
+	  (?F "\\Phi")
 	  (?j "\\theta" "\\vartheta")
 	  (?J "\\Theta" "\\varTheta")
 	  (?i "\\iota")
@@ -944,6 +950,7 @@ without the pair given, prompt the user for inseted pair."
 	'(:foreground default :background default :scale 1.4 :html-foreground "Black" :html-background "Transparent" :html-scale 1.0 :matchers
 	     ("begin" "$1" "$" "$$" "\\(" "\\[")))
   (setq org-latex-create-formula-image-program 'dvipng)
+  (setq org-preview-latex-image-directory ".ltximg/")
   (setq org-highlight-latex-and-related '(native latex script entities))
 
   ;; function to insert latex environment in org-mode
