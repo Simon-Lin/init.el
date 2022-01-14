@@ -684,6 +684,10 @@ Version 2018-09-10"
 
 ;; smartparens setup
 (use-package smartparens
+  :config
+  ;; pad space when inserting unnamed equations
+  (sp-local-pair 'LaTeX-mode "\\[" nil :post-handlers '(:add " | "))
+  (sp-local-pair 'org-mode "\\[" nil :post-handlers '(:add " | "))
   :hook
   (prog-mode . smartparens-mode)
   (smartparens-mode . show-smartparens-mode)
@@ -768,7 +772,7 @@ With unversal prefix, turn off latex preview mode."
 	  (?\) "\\right)")
 	  (?\[ "\\left[?\\right]")
 	  (?\] "\\right]")
-	  (?\{ "\\left\\\{?\\right\}")
+	  (?\{ "\\left\\\{?\\right\\\}")
 	  (?\} "\\right\}")
 	  (?. "\\cdot" "\\cdots")
 	  (?< "\\leftarrow" "\\Leftarrow" "\\longleftarrow")
