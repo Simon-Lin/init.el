@@ -340,7 +340,7 @@
   (setq-local company-backends
 	      (append '((company-math-symbols-latex company-latex-commands))
 		      company-backends)))
-(add-hook 'TeX-mode-hook 'company-math-setup))
+  (add-hook 'TeX-mode-hook 'company-math-setup))
 (use-package company-auctex
   :defer t
   :init
@@ -426,7 +426,6 @@ Version 2018-09-10"
   (which-key-mode))
 
 (setq scroll-preserve-screen-position t)
-(global-prettify-symbols-mode 1)
 ;; (setq prettify-symbols-unprettify-at-point t)
 (setq debug-on-error t)
 (setq set-mark-command-repeat-pop t)
@@ -434,6 +433,8 @@ Version 2018-09-10"
 (setq shift-select-mode nil)
 (delete-selection-mode 1)
 (tooltip-mode -1)
+(setq tab-bar-show nil)
+
 
 (defun new-empty-buffer ()
   "Create a new empty buffer."
@@ -607,11 +608,10 @@ Version 2018-09-10"
 		    "A-2" 'split-window-below
 		    "A-3" 'split-window-right
 		    "A-6" 'enlarge-window
-		    "A-0" 'delete-window
-		    "A-]" 'enlarge-window-horizontally
-		    "A-[" 'shrink-window-horizontally
-		    "-" 'shrink-window-if-larger-than-buffer
-		    "+" 'balance-windows
+		    "A-0" 'delete-window		    
+		    ">" 'enlarge-window-horizontally
+		    "<" 'shrink-window-horizontally
+		    "=" 'balance-windows
 		    "<A-return>" 'toggle-frame-maximized
 		    "<A-S-return>" 'toggle-frame-fullscreen
 		    "A-a" 'make-frame-command
@@ -619,8 +619,11 @@ Version 2018-09-10"
 		    "A-s" 'switch-to-buffer-other-frame
 		    "A-w" 'delete-frame
 		    "A-q" 'delete-other-frames
+		    "A-t" 'tab-bar-new-tab
+		    "A-]" 'tab-bar-switch-to-next-tab
+		    "A-[" 'tab-bar-switch-to-prev-tab
+		    "A-c" 'tab-bar-close-tab
 		    )
-
 ;; ace window
 ;; (use-package ace-window
 ;;   :bind (("A-b A-o" . ace-window)))
@@ -731,26 +734,14 @@ Version 2018-09-10"
 
 ;; LaTeX
 
-(use-package latex-preview-pane
-  :config
-  (defun latex-preview-shortcut (&optional arg)
-    "Turn on latex preview mode if it hasn't turned on yet.
-Otherwise, call LatexMk.
-With unversal prefix, turn off latex preview mode."
-    (interactive "P")
-    (if latex-preview-pane-mode
-	(if arg
-	    (latex-preview-pane-mode -1)
-	  (save-buffer)
-	  (TeX-command "LatexMk" 'TeX-master-file)
-	  (latex-preview-pane-update))
-      (latex-preview-pane-mode)))
-    (latex-preview-pane-enable))
-
 ;; cdlatex
 (use-package cdlatex
-  :config
+  :defer t
+  :init
+  (setq cdlatex-takeover-parenthesis nil)
   (setq cdlatex-takeover-subsuperscript nil)
+  
+  :config
   (setq cdlatex-math-symbol-alist
 	'((?\s "\\quad" "\\qquad")
 	  (?1 "\\frac{?}{}" "\\dfrac{?}{}")
@@ -878,23 +869,42 @@ without the pair given, prompt the user for inseted pair."
 (use-package tex-site :straight auctex
   :defer t
   :config
-  ;; (add-hook 'LaTeX-mode-hook 'LaTeX-math-mode)
   (add-hook 'LaTeX-mode-hook 'turn-on-cdlatex)
   (add-hook 'LaTeX-mode-hook 'TeX-source-correlate-mode)
   (add-hook 'LaTeX-mode-hook 'smartparens-mode)
   (add-hook 'LaTeX-mode-hook (lambda () (variable-pitch-mode 1)))
   (add-hook 'TeX-after-compilation-finished-functions #'TeX-revert-document-buffer)
-  (add-hook 'LaTeX-mode-hook (lambda () (print LaTeX-label-alist)))
+
+  ;; somehow prettify symbols are broken in auctex. Need a manual fix
+  (add-hook 'LaTeX-mode-hook (lambda () (setq prettify-symbols-alist tex--prettify-symbols-alist)))
+  (add-hook 'LaTeX-mode-hook (lambda () (setq prettify-symbols-compose-predicate 'tex--prettify-symbols-compose-p)))
+  
   (setq TeX-view-program-selection '((output-pdf "PDF Tools"))
 	TeX-view-program-list '(("PDF Tools" TeX-pdf-tools-sync-view))
 	TeX-source-correlate-start-server t)
   (setq-default LaTeX-default-environment "align")
-  (setq-default reftex-plug-into-AUCTeX '(nil t t t t))
+  (setq reftex-plug-into-AUCTeX '(nil t t t t))
   (defun LaTeX-no-insert-label (orig-fun &rest args)
     "turn off automatic labeling"
     (apply orig-fun args '(t)))
   (advice-add 'LaTeX-label :around 'LaTeX-no-insert-label)
-      
+
+  ;; preview setup
+  (use-package latex-preview-pane :straight (:type git :host github :repo "Simon-Lin/latex-preview-pane" :branch "master")
+    :config
+    (defun latex-preview-shortcut (&optional arg)
+      "Turn on latex preview mode if it hasn't turned on yet.
+Otherwise, call LatexMk.
+With unversal prefix, turn off latex preview mode."
+      (interactive "P")
+      (if (and (boundp 'latex-preview-pane-mode) latex-preview-pane-mode)
+	  (if arg
+	      (latex-preview-pane-mode -1)
+	    (save-buffer)
+	    (TeX-command "LatexMk" 'TeX-master-file)
+	    (latex-preview-pane-update))
+	(latex-preview-pane-mode))))
+  
   ;; latexmk setup
   (use-package auctex-latexmk)
   (auctex-latexmk-setup)
@@ -903,10 +913,7 @@ without the pair given, prompt the user for inseted pair."
 
   :general
   (:keymaps 'LaTeX-mode-map
-	    "A-e" 'latex-mode-backward-delete-word)
-  (:keymaps 'LaTeX-math-mode-map
-	    "A-e" 'latex-backward-delete-word
-	    "` <return>" 'latex-math-symobl-lookup)
+	    "A-e" 'latex-backward-delete-word)
   (:keymaps 'LaTeX-mode-map :prefix "A-w"
 	    "A-w" 'TeX-command-master
 	    "A-a" 'TeX-command-run-all
@@ -920,7 +927,7 @@ without the pair given, prompt the user for inseted pair."
 	    "A-p" 'latex-preview-shortcut
 	    "A-9" 'reftex-label
 	    "A-0" 'reftex-reference
-	    "A-[" 'reftex-cite
+	    "A-[" 'reftex-citation
 	    "A-]" 'LaTeX-close-environment
 	    "A-=" 'reftex-toc
 	    "RET" 'TeX-insert-macro
@@ -1037,7 +1044,9 @@ without the pair given, prompt the user for inseted pair."
 	    "A-r" 'org-redisplay-inline-images
 	    )
   (:keymaps 'org-cdlatex-mode-map
-	    "A-e" 'latex-backward-delete-word))
+	    "A-e" 'latex-backward-delete-word
+	    "^" 'org-self-insert-command
+	    "_" 'org-self-insert-command))
 
 
 ;; citar
