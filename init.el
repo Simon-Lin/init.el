@@ -197,8 +197,7 @@
    "A-8" 'centaur-tabs-select-visible-tab
    "A-9" 'centaur-tabs-select-visible-tab)
 
-  (centaur-tabs-mode t)
-  )
+  (centaur-tabs-mode t))
 
 ;; misc appearance settings
 (setq-default cursor-type 'bar)
@@ -227,7 +226,18 @@
   ;; (unbind-key "M-i" 'selectrum-minibuffer-map) ;; M-i has two duplicate keymaps, unbind the first one (no longer needed since I use A-I for page up)
   (selectrum-mode 1))
 
-(use-package consult) ;; keybindings of consult are in the global keymaps section
+(use-package consult ;; keybindings of consult are in the global keymaps section
+  :config
+  (consult-customize
+   ;; turn off preview for opening recent files
+   consult-recent-file :preview-key nil
+   consult-recent-file-other-window :preview-key nil)
+  
+  ;; quick hack for using consult to open recent file in other window
+  (defun consult-recent-file-other-window ()
+    (interactive)
+    (cl-letf (((symbol-function 'find-file) #'find-file-other-window))
+      (consult-recent-file))))
 
 (use-package prescient
   :config
@@ -310,10 +320,11 @@
 	      ("A-k" . popup-next)
 	      ("A-j" . popup-open)
 	      ("A-l" . popup-close)))
+
 (use-package flyspell-correct
   :after flyspell
-  :bind (:map flyspell-mode-map ("A-'" . flyspell-correct-wrapper))
-  )
+  :bind (:map flyspell-mode-map ("A-'" . flyspell-correct-wrapper)))
+
 (use-package flyspell-correct-popup
   :after flyspell-correct)
 (add-hook 'text-mode-hook 'flyspell-mode)
@@ -341,10 +352,12 @@
 	      (append '((company-math-symbols-latex company-latex-commands))
 		      company-backends)))
   (add-hook 'TeX-mode-hook 'company-math-setup))
+
 (use-package company-auctex
   :defer t
   :init
   (add-hook 'TeX-mode-hook 'company-auctex-init))
+
 
 ;; flycheck
 (use-package flycheck
@@ -356,7 +369,7 @@
 
 (use-package consult-flycheck
   :after flycheck
-  :bind ("A-\"" . consult-flycheck) )
+  :bind ("A-\"" . consult-flycheck))
 
 
 ;; alternative kill and copy behavior (credit: Xah)
@@ -570,7 +583,8 @@ Version 2018-09-10"
 
 
 ;; file and system actions (leading key A-q)
-(defun open-user-init-file () (interactive)
+(defun open-user-init-file ()
+  (interactive)
   (find-file (expand-file-name (concat user-emacs-directory "init.el"))))
 
 (general-define-key :prefix "A-q"
@@ -583,12 +597,13 @@ Version 2018-09-10"
 		    "A-e" 'eval-last-sexp
 		    "e"   'eval-defun
 		    "A-f" 'find-file
-		    "f" 'find-file-other-window
+		    "f"   'find-file-other-window
 		    ;;A-g  magit
 		    "A-i" 'open-user-init-file
 		    "A-m" 'consult-bookmark
 		    ;;A-p  projectile-map
 		    "A-r" 'consult-recent-file
+		    "r"   'consult-recent-file-other-window
 		    "A-s" 'save-buffer
 		    "A-u" 'undo-tree-visualize
 		    ;;A-y  yas-insert-snippet
@@ -608,7 +623,7 @@ Version 2018-09-10"
 		    "A-2" 'split-window-below
 		    "A-3" 'split-window-right
 		    "A-6" 'enlarge-window
-		    "A-0" 'delete-window		    
+		    "A-0" 'delete-window
 		    ">" 'enlarge-window-horizontally
 		    "<" 'shrink-window-horizontally
 		    "=" 'balance-windows
