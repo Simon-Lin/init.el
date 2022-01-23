@@ -1,0 +1,68 @@
+* Introduction
+So you somehow wandered into this page. Interesting.
+This is my personal Emacs configuration files that I use from day to day.
+I setup this repo so I can backup and transfer them more easily.
+You are free to take away what you want, but I doubt they will be any useful to you.
+Currently my system only consists of [[https://github.com/railwaycat/homebrew-emacsmacport][railwaycat port]] of Emacs on macOS, so this probably won't work on other platforms.
+
+* Keybindings
+I use a keybinding scheme that is heavily inspired by [[https://ergoemacs.github.io/][ergoemacs mode]].
+Most of the important keybindings use the ~command~ or ~command+shift~ modifier (remapped to ~A-~ in init file) instead of the vanilla Emacs' ~C-~ or ~M-~ style.
+See:
+[[layout.png]]
+
+* Tabs?
+I'm a heavy user of [[https://github.com/ema2159/centaur-tabs][tabs]].
+Many think that emacs tabs merely occupy screen space and provide no utility as you still need to move cursor to click on it.
+To me, the usefulness of tabs is not for clicking -- they are a good indicator to keep track of opened buffers and allow me to quickly switch between them using keyboard shortcuts.
+I bind ~A-1~ to ~A-9~ to selecting the numbered tabs so it saves me the hassle to call `switch-buffer` and typing the buffer name every time.
+
+* Modes
+I am a graduate student in theoretical physics.
+Most of my daily work flow in Emacs include checking new papers on online database and writing notes in LaTeX.
+I use to code in C++ in my undergrad (when I worked in in HEP-EX) but I don't anymore. Now I only code in Mathematica, and obviously, elisp.
+Therefore this init file severely lacks normal programming language support. Maybe someday I will add them back. Someday.
+
+* Packages
+I use [[https://github.com/raxod502/straight.el][straight.el]] for general package management.
+Here's a list of packages I use (not inclusive).
+** appearance
+- all-the-icons
+- centaur-tabs
+- dashboard
+- doom-modeline
+- rainbow-delimiters
+  
+** system utility
+- dired-hacks
+- general
+- helpful
+- hydra
+- no-littering
+- prescient
+- restart-emacs
+- undo-tree
+- which-key
+  
+** editing/completion
+- company
+- consult
+- drag-stuff
+- embark
+- expand-region 
+- flycheck
+- flyspell-correct
+- marginalia
+- selectrum
+- smartparens
+
+** modes/tools
+- arxiv-mode
+- auctex
+- cdlatex
+- citar
+- latex-preview-pane
+- magit
+- pdf-tools
+- projectile
+

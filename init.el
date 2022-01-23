@@ -1,7 +1,9 @@
 ;;; init.el -*- lexical-binding: t; -*-
 
 
-;; straight package manager settings
+
+;;; ========== package manager settings ==========
+
 ;; bootstrapping straight
 (defvar bootstrap-version)
 (let ((bootstrap-file
@@ -55,6 +57,10 @@
 ;; (set-face-attribute 'text-mode-default nil
 ;;		    :family "Lucida Grande"
 ;;		    :height 120)
+
+
+
+;;; ========== Appearance ==========
 
 ;; dashboard
 (use-package dashboard
@@ -142,9 +148,6 @@
   (setq display-time-format "%a %H:%M")
   (display-time-mode 1)
   )
-;; (use-package powerline
-;;   :config
-;;   (powerline-default-theme))
 
 ;; tabs
 (use-package centaur-tabs :straight (:type git :host github :repo "Simon-Lin/centaur-tabs" :branch "master")
@@ -153,7 +156,7 @@
   (centaur-tabs-change-fonts "Lucida Grande" 130)
   (setq centaur-tabs-style "bar")
   (setq centaur-tabs-set-bar 'over)
-  (setq centaur-tabs-height 24)
+  (setq centaur-tabs-height 30)
   (setq centaur-tabs-label-fixed-length 25)
   (setq centaur-tabs-set-icons t)
   (setq centaur-tabs-gray-out-icons 'buffer)
@@ -212,7 +215,10 @@
 (global-visual-line-mode)
 ;; (pixel-scroll-mode)   NOT working
 
-;; completion framework
+
+
+;;; ========== Completion framework ==========
+
 (use-package selectrum
   :config
   (defun my-selectrum-backward-kill-word-wrapper (&optional arg)
@@ -228,16 +234,15 @@
 
 (use-package consult ;; keybindings of consult are in the global keymaps section
   :config
-  (consult-customize
-   ;; turn off preview for opening recent files
-   consult-recent-file :preview-key nil
-   consult-recent-file-other-window :preview-key nil)
-  
   ;; quick hack for using consult to open recent file in other window
   (defun consult-recent-file-other-window ()
     (interactive)
     (cl-letf (((symbol-function 'find-file) #'find-file-other-window))
-      (consult-recent-file))))
+      (consult-recent-file)))
+  (consult-customize
+   ;; turn off preview for opening recent files
+   consult-recent-file :preview-key nil
+   consult-recent-file-other-window :preview-key nil))
 
 (use-package prescient
   :config
@@ -358,7 +363,6 @@
   :init
   (add-hook 'TeX-mode-hook 'company-auctex-init))
 
-
 ;; flycheck
 (use-package flycheck
   :init
@@ -371,6 +375,9 @@
   :after flycheck
   :bind ("A-\"" . consult-flycheck))
 
+
+
+;;; ========== Misc functions ==========
 
 ;; alternative kill and copy behavior (credit: Xah)
 (defun xah-cut-line-or-region ()
@@ -490,6 +497,10 @@ Version 2018-09-10"
 	    (set-window-point win (point))))
       (scroll-other-window-down))))
 
+(defun open-user-init-file ()
+  (interactive)
+  (find-file (expand-file-name (concat user-emacs-directory "init.el"))))
+
 ;; drag stuff around
 (use-package drag-stuff
   :config
@@ -501,9 +512,11 @@ Version 2018-09-10"
 		      "M-k" 'drag-stuff-down
 		      "M-j" 'drag-stuff-left
 		      "M-l" 'drag-stuff-right))
-  
 
-;; global keymaps
+
+
+;;; ========== Global keybinding ==========
+
 (setq mac-command-modifier 'alt)
 (setq mac-option-modifier 'meta)
 (setq mac-pass-command-to-system nil) ;; set macos system-short off
@@ -527,12 +540,12 @@ Version 2018-09-10"
  "A-I" 'scroll-down-command
  "A-C-i" 'my-scroll-other-window-down
  "A-j" 'backward-char
- "A-J" 'backward-sentence
+ "A-J" 'backward-list
  "A-k" 'next-line
  "A-K" 'scroll-up-command
  "A-C-k" 'my-scroll-other-window
  "A-l" 'forward-char
- "A-L" 'forward-sentence
+ "A-L" 'forward-list
  ;;A-m  C-u
  ;;A-n  C-g
  "A-o" 'forward-word
@@ -583,9 +596,6 @@ Version 2018-09-10"
 
 
 ;; file and system actions (leading key A-q)
-(defun open-user-init-file ()
-  (interactive)
-  (find-file (expand-file-name (concat user-emacs-directory "init.el"))))
 
 (general-define-key :prefix "A-q"
 		    "TAB" 'indent-rigidly
@@ -643,6 +653,10 @@ Version 2018-09-10"
 ;; (use-package ace-window
 ;;   :bind (("A-b A-o" . ace-window)))
 
+
+
+;;; ========== Utilities ==========
+
 ;; Dired hacks
 (use-package dired-hacks-utils
   :defer t
@@ -655,7 +669,7 @@ Version 2018-09-10"
   (use-package dired-filter)
   (use-package dired-du)
   (setq dired-du-size-format t)
-  (setq insert-directory-program "/usr/local/bin/gls") ;; use gls from coreutils for --group-directories-first option
+  (setq insert-directory-program "/opt/homebrew/bin/gls") ;; use gls from coreutils for --group-directories-first option
   (setq dired-listing-switches "-agho --group-directories-first")
   (general-define-key :keymaps 'dired-mode-map
 		    "i" 'dired-previous-line
@@ -692,8 +706,7 @@ Version 2018-09-10"
 	    "C-h A-j" 'describe-mode
 	    "C-h A-o" 'describe-symbol
 	    "C-h A-k" 'describe-key
-	    "C-h A-b" 'embark-bindings
-	    ))
+	    "C-h A-b" 'embark-bindings))
 
 ;; restart emacs within emacs
 (use-package restart-emacs
@@ -735,7 +748,9 @@ Version 2018-09-10"
   (lisp-interaction-mode . rainbow-delimiters-mode))
 (define-key lisp-interaction-mode-map (kbd "<A-return>") 'eval-print-last-sexp)
 
-
+;; projectile
+(use-package projectile
+  :bind-keymap ("A-q A-p" . projectile-command-map))
 
 ;; pdf tools
 (use-package pdf-tools
@@ -746,8 +761,16 @@ Version 2018-09-10"
 	      ("k" . pdf-view-scroll-up-or-next-page)))
 (pdf-loader-install)
 
+;; snippets
+;; (use-package yasnippet
+;;   :config
+;;   (bind-key "A-q A-y" 'yas-insert-snippet 'yas-minor-mode-map )
+;;   (use-package yasnippet-snippets)
+;;   (add-hook 'prog-mode-hook 'yas-minor-mode))
 
-;; LaTeX
+
+
+;;; ========== LaTeX ==========
 
 ;; cdlatex
 (use-package cdlatex
@@ -947,11 +970,12 @@ With unversal prefix, turn off latex preview mode."
 	    "A-=" 'reftex-toc
 	    "RET" 'TeX-insert-macro
 	    "*" 'LaTeX-mark-section
-	    "." 'LaTeX-mark-environment
-	    ))
+	    "." 'LaTeX-mark-environment))
 
 
-;; org settings
+
+;;; ========== org ==========
+
 (use-package org
   :defer t
   :config
@@ -1078,9 +1102,11 @@ With unversal prefix, turn off latex preview mode."
 
   :bind
   ("A-q A-b" . citar-open-library-files)
-  ("A-q b" . citar-insert-citation)
-  )
+  ("A-q b" . citar-insert-citation))
 
+
+
+;;; ========== Major modes ==========
 
 ;; arxiv-mode
 (use-package arxiv-mode :straight (:type git :host github :repo "Simon-Lin/arxiv-mode" :branch "master")
@@ -1098,9 +1124,6 @@ With unversal prefix, turn off latex preview mode."
   ('arxiv-mode . 'centaur-tabs-local-mode)
   ('arxiv-abstract-mode . 'centaur-tabs-local-mode))
 
-;; projectile
-(use-package projectile
-  :bind-keymap ("A-q A-p" . projectile-command-map))
 
 ;; magit
 (use-package magit
@@ -1134,12 +1157,6 @@ With unversal prefix, turn off latex preview mode."
   (transient-suffix-put 'magit-dispatch "k" :key "DEL") ;;magit-discard
   )
 
-;; snippets
-;; (use-package yasnippet
-;;   :config
-;;   (bind-key "A-q A-y" 'yas-insert-snippet 'yas-minor-mode-map )
-;;   (use-package yasnippet-snippets)
-;;   (add-hook 'prog-mode-hook 'yas-minor-mode))
 
 ;; shells
 (defun my-eshell-config ()
