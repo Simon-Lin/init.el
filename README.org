@@ -15,7 +15,7 @@ See:
 I'm a heavy user of [[https://github.com/ema2159/centaur-tabs][tabs]].
 Many think that emacs tabs merely occupy screen space and provide no utility as you still need to move cursor to click on it.
 To me, the usefulness of tabs is not for clicking -- they are a good indicator to keep track of opened buffers and allow me to quickly switch between them using keyboard shortcuts.
-I bind ~A-1~ to ~A-9~ to selecting the numbered tabs so it saves me the hassle to call `switch-buffer` and typing the buffer name every time.
+I bind ~A-1~ to ~A-9~ to selecting the numbered tabs so it saves me the hassle to call ~switch-buffer~ and typing the buffer name every time.
 
 * Modes
 I am a graduate student in theoretical physics.

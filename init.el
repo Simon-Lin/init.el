@@ -105,7 +105,7 @@
   :config
   (set-face-attribute 'mode-line nil :family "Lucida Grande" :box nil :height 130)
   (set-face-attribute 'mode-line-inactive nil :family "Lucida Grande" :box nil :height 130)
-  (setq doom-modeline-height 22)
+  (setq doom-modeline-height 30)
   (setq doom-modeline-bar-width 10)
   (setq doom-modeline-hud t)
   (setq doom-modeline-window-width-limit fill-column)
@@ -147,7 +147,8 @@
   (setq display-time-default-load-average nil)
   (setq display-time-format "%a %H:%M")
   (display-time-mode 1)
-  )
+  ;; display battery
+  (display-battery-mode 1))
 
 ;; tabs
 (use-package centaur-tabs :straight (:type git :host github :repo "Simon-Lin/centaur-tabs" :branch "master")
@@ -996,10 +997,22 @@ With unversal prefix, turn off latex preview mode."
 				   (modify-syntax-entry ?_ ".")
 				   (modify-syntax-entry ?' "."))))
 
-  (setq org-format-latex-options
-	'(:foreground default :background default :scale 1.4 :html-foreground "Black" :html-background "Transparent" :html-scale 1.0 :matchers
-	     ("begin" "$1" "$" "$$" "\\(" "\\[")))
-  (setq org-latex-create-formula-image-program 'dvipng)
+  (defun my-org-format-scale ()
+    "Set the correct scale for latex fragments
+Images somehow are rendered 1.5 times bigger on retina screens.
+Counter that by dividing the factor out."
+    (let ((true-scale 1.3))
+      (/ true-scale
+	 (if (equal (frame-monitor-attribute 'name)  "Built-in Retina Display")
+	     1.5 1))))
+  
+  (defun my-org-latex-preview (&optional arg)
+    "Set the render scale in to match different monitor before calling `latex-preview'."
+    (interactive "P")
+    (plist-put org-format-latex-options :scale (my-org-format-scale))
+    (org-latex-preview arg))
+
+  (setq org-preview-latex-default-process 'dvisvgm)
   (setq org-preview-latex-image-directory ".ltximg/")
   (setq org-highlight-latex-and-related '(native latex script entities))
 
@@ -1078,7 +1091,7 @@ With unversal prefix, turn off latex preview mode."
 	    "A-a" 'org-attach
 	    "A-q" 'org-set-tags-command
 	    "A-s" 'org-schedule
-	    "A-p" 'org-latex-preview
+	    "A-p" 'my-org-latex-preview
 	    "A-i" 'my-org-insert-environment
 	    "A-r" 'org-redisplay-inline-images
 	    )
