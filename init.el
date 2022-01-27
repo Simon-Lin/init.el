@@ -502,6 +502,16 @@ Version 2018-09-10"
   (interactive)
   (find-file (expand-file-name (concat user-emacs-directory "init.el"))))
 
+(defun split-window-left (&optional size)
+  (interactive)
+  (split-window-right size)
+  (other-window 1))
+
+(defun split-window-above (&optional size)
+  (interactive)
+  (split-window-below size)
+  (other-window 1))
+
 ;; drag stuff around
 (use-package drag-stuff
   :config
@@ -627,9 +637,13 @@ Version 2018-09-10"
 		    "A-k" '("kill-current-buffer" . (lambda () (interactive) (kill-buffer (current-buffer))))
 		    "k"   'kill-buffer
 		    "n"   'new-empty-buffer
-		    "A-j" 'previous-buffer
-		    "A-l" 'next-buffer
+		    "A-i" 'split-window-above
+		    "A-k" 'split-window-below
+		    "A-j" 'split-window-left
+		    "A-l" 'split-window-right
 		    "A-o" 'other-window
+		    "A-w" 'delete-window
+		    "A-s" 'window-swap-states
 		    "A-1" 'delete-other-windows
 		    "A-2" 'split-window-below
 		    "A-3" 'split-window-right
@@ -642,8 +656,7 @@ Version 2018-09-10"
 		    "<A-S-return>" 'toggle-frame-fullscreen
 		    "A-a" 'make-frame-command
 		    "A-f" 'other-frame
-		    "A-s" 'switch-to-buffer-other-frame
-		    "A-w" 'delete-frame
+		    "A-d" 'delete-frame
 		    "A-q" 'delete-other-frames
 		    "A-t" 'tab-bar-new-tab
 		    "A-]" 'tab-bar-switch-to-next-tab
@@ -904,6 +917,16 @@ without the pair given, prompt the user for inseted pair."
   (interactive)
   (find-file-other-window "~/.emacs.d/symbols.pdf"))
 
+(defun latex-preview-format-scale ()
+    "Set the correct scale for latex fragments
+Images somehow are rendered 1.5 times bigger on retina screens.
+Counter that by dividing the factor out."
+    (let ((true-scale 1.25))
+      (/ true-scale
+	 (if (equal (frame-monitor-attribute 'name)  "Built-in Retina Display")
+	     1.5 1))))
+
+
 ;; auctex
 (use-package tex-site :straight auctex
   :defer t
@@ -915,12 +938,13 @@ without the pair given, prompt the user for inseted pair."
   (add-hook 'TeX-after-compilation-finished-functions #'TeX-revert-document-buffer)
 
   ;; somehow prettify symbols are broken in auctex. Need a manual fix
-  (add-hook 'LaTeX-mode-hook (lambda () (setq prettify-symbols-alist tex--prettify-symbols-alist)))
-  (add-hook 'LaTeX-mode-hook (lambda () (setq prettify-symbols-compose-predicate 'tex--prettify-symbols-compose-p)))
+  ;; (add-hook 'LaTeX-mode-hook (lambda () (setq prettify-symbols-alist tex--prettify-symbols-alist)))
+  ;; (add-hook 'LaTeX-mode-hook (lambda () (setq prettify-symbols-compose-predicate 'tex--prettify-symbols-compose-p)))
   
   (setq TeX-view-program-selection '((output-pdf "PDF Tools"))
 	TeX-view-program-list '(("PDF Tools" TeX-pdf-tools-sync-view))
-	TeX-source-correlate-start-server t)
+	TeX-source-correlate-start-server t
+	TeX-error-overview-open-after-TeX-run t)
   (setq-default LaTeX-default-environment "align")
   (setq reftex-plug-into-AUCTeX '(nil t t t t))
   (defun LaTeX-no-insert-label (orig-fun &rest args)
@@ -929,41 +953,57 @@ without the pair given, prompt the user for inseted pair."
   (advice-add 'LaTeX-label :around 'LaTeX-no-insert-label)
 
   ;; preview setup
-  (use-package latex-preview-pane :straight (:type git :host github :repo "Simon-Lin/latex-preview-pane" :branch "master")
-    :config
-    (defun latex-preview-shortcut (&optional arg)
-      "Turn on latex preview mode if it hasn't turned on yet.
-Otherwise, call LatexMk.
-With unversal prefix, turn off latex preview mode."
-      (interactive "P")
-      (if (and (boundp 'latex-preview-pane-mode) latex-preview-pane-mode)
-	  (if arg
-	      (latex-preview-pane-mode -1)
-	    (save-buffer)
-	    (TeX-command "LatexMk" 'TeX-master-file)
-	    (latex-preview-pane-update))
-	(latex-preview-pane-mode))))
+  (use-package preview-dvisvgm)   ;does not seem to be working now
+  (setq preview-image-type 'dvipng
+	preview-scale-function #'latex-preview-format-scale)
   
-  ;; latexmk setup
-  (use-package auctex-latexmk)
-  (auctex-latexmk-setup)
-  (setq-default TeX-command-Show "LatexMk")
-  (setq auctex-latexmk-inherit-TeX-PDF-mode t)
+  (defun my-latex-preview (&optional arg)
+    "Make previewing in LaTeX act like org-latex-preview."
+    (interactive "P")
+    (cond
+     ;; if called with C-u, clear preview in section
+     ((equal arg '(4)) (preview-clearout-section))
+     ;; if called with C-u C-u, preview entire document
+     ((equal arg '(16)) (preview-document))
+     ;; if called with C-u C-u C-u, clear preview for the document
+     ((equal arg '(64)) (preview-clearout-document))
+     (t
+      ;; if an region is active, preview the region
+      (if (TeX-active-mark)
+	  (preview-region (region-beginning) (region-end))
+	
+	;; if an preview overlay exists, toggle preview status
+	(catch 'done
+	  (dolist (ovr (overlays-at (point)))
+	    (if-let (preview-state (overlay-get ovr 'preview-state))
+		(when preview-state
+		  (unless (eq preview-state 'disabled)
+		    (preview-clearout-at-point))
+		    ;; (preview-toggle ovr 'toggle (selected-window)))
+		  (throw 'done t))))
+	  
+	  ;; if no preview exists, preview current environment if cursor is in a environment
+	  ;; otherwise preview current section
+	  (if (string= (LaTeX-current-environment) "document")
+	      (preview-section)
+	    (preview-environment 1))))))
+    (deactivate-mark))
 
   :general
   (:keymaps 'LaTeX-mode-map
 	    "A-e" 'latex-backward-delete-word)
   (:keymaps 'LaTeX-mode-map :prefix "A-w"
 	    "A-w" 'TeX-command-master
-	    "A-a" 'TeX-command-run-all
+	    "A-a" (lambda () (interactive) (save-buffer) (TeX-command-run-all nil))
 	    "A-b" 'TeX-command-buffer
 	    "A-e" 'LaTeX-environment
 	    "A-i" 'LaTeX-environment
 	    "A-f" 'TeX-font
 	    "A-k" 'TeX-kill-job
+	    "A-v" 'TeX-view
 	    "A-s" 'LaTeX-section
 	    "A-j" 'LaTeX-insert-item
-	    "A-p" 'latex-preview-shortcut
+	    "A-p" 'my-latex-preview
 	    "A-9" 'reftex-label
 	    "A-0" 'reftex-reference
 	    "A-[" 'reftex-citation
@@ -971,9 +1011,10 @@ With unversal prefix, turn off latex preview mode."
 	    "A-=" 'reftex-toc
 	    "RET" 'TeX-insert-macro
 	    "*" 'LaTeX-mark-section
-	    "." 'LaTeX-mark-environment))
-
-
+	    "." 'LaTeX-mark-environment)
+  (:keymaps 'TeX-error-overview-mode-map
+	    "i" 'TeX-error-overview-previous-error
+	    "k" 'TeX-error-overview-next-error))
 
 ;;; ========== org ==========
 
@@ -996,20 +1037,11 @@ With unversal prefix, turn off latex preview mode."
 				   (modify-syntax-entry ?| ".")
 				   (modify-syntax-entry ?_ ".")
 				   (modify-syntax-entry ?' "."))))
-
-  (defun my-org-format-scale ()
-    "Set the correct scale for latex fragments
-Images somehow are rendered 1.5 times bigger on retina screens.
-Counter that by dividing the factor out."
-    (let ((true-scale 1.3))
-      (/ true-scale
-	 (if (equal (frame-monitor-attribute 'name)  "Built-in Retina Display")
-	     1.5 1))))
   
   (defun my-org-latex-preview (&optional arg)
     "Set the render scale in to match different monitor before calling `latex-preview'."
     (interactive "P")
-    (plist-put org-format-latex-options :scale (my-org-format-scale))
+    (plist-put org-format-latex-options :scale (latex-preview-format-scale))
     (org-latex-preview arg))
 
   (setq org-preview-latex-default-process 'dvisvgm)
