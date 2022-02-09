@@ -350,19 +350,17 @@
 	 (text-mode . company-mode)
 	 (company-mode . company-posframe-mode)))
 
-(use-package company-math
-  :defer t
-  :init
-  (defun company-math-setup ()
-  (setq-local company-backends
-	      (append '((company-math-symbols-latex company-latex-commands))
-		      company-backends)))
-  (add-hook 'TeX-mode-hook 'company-math-setup))
+(use-package company-math :defer t)
+(use-package company-auctex :defer t)
+(use-package company-reftex :defer t)
 
-(use-package company-auctex
-  :defer t
-  :init
-  (add-hook 'TeX-mode-hook 'company-auctex-init))
+(defun company-latex-setup ()
+    (setq-local company-backends
+		(append '((company-math-symbols-latex company-latex-commands)
+			  (:separate company-reftex-labels company-reftex-citations)
+			  (:separate company-auctex-macros company-auctex-symbols company-auctex-environments))
+			company-backends)))
+(add-hook 'TeX-mode-hook 'company-latex-setup)
 
 ;; flycheck
 (use-package flycheck
@@ -374,7 +372,7 @@
 
 (use-package consult-flycheck
   :after flycheck
-  :bind ("A-\"" . consult-flycheck))
+  :bind ("A-|" . consult-flycheck))
 
 
 
@@ -502,16 +500,6 @@ Version 2018-09-10"
   (interactive)
   (find-file (expand-file-name (concat user-emacs-directory "init.el"))))
 
-(defun split-window-left (&optional size)
-  (interactive)
-  (split-window-right size)
-  (other-window 1))
-
-(defun split-window-above (&optional size)
-  (interactive)
-  (split-window-below size)
-  (other-window 1))
-
 ;; drag stuff around
 (use-package drag-stuff
   :config
@@ -582,6 +570,7 @@ Version 2018-09-10"
  "A-Z" 'undo-tree-redo
  "A-SPC" 'set-mark-command
  "A-C-SPC" 'exchange-point-and-mark
+ "A-`" 'indent-for-tab-command
  "A-[" 'centaur-tabs-backward
  "A-]" 'centaur-tabs-forward
  "A-{" 'centaur-tabs-backward-group
@@ -591,11 +580,15 @@ Version 2018-09-10"
  "A-;" 'move-end-of-line
  "A-:" 'forward-paragraph
  ;;A-'  flyspell-correct
+ "A-\"" 'company-complete
  "A-\\" 'comment-line
  "A-," 'beginning-of-defun
  "A-<" 'beginning-of-buffer
  "A-." 'end-of-defun
  "A->" 'end-of-buffer
+ ;;A-(1-9) 'jump-to-tabs
+ "A-(" 'tab-bar-switch-to-prev-tab
+ "A-)" 'tab-bar-switch-to-next-tab
  "A-=" '("increase-buffer-font-size" . (lambda () (interactive) (text-scale-increase 1)))
  "A-+" '("increase-buffer-font-size" . (lambda () (interactive) (text-scale-increase 1)))
  "A--" '("decrease-buffer-font-size" . (lambda () (interactive) (text-scale-decrease 1)))
@@ -637,10 +630,6 @@ Version 2018-09-10"
 		    "A-k" '("kill-current-buffer" . (lambda () (interactive) (kill-buffer (current-buffer))))
 		    "k"   'kill-buffer
 		    "n"   'new-empty-buffer
-		    "A-i" 'split-window-above
-		    "A-k" 'split-window-below
-		    "A-j" 'split-window-left
-		    "A-l" 'split-window-right
 		    "A-o" 'other-window
 		    "A-w" 'delete-window
 		    "A-s" 'window-swap-states
@@ -768,6 +757,9 @@ Version 2018-09-10"
 
 ;; pdf tools
 (use-package pdf-tools
+  :config
+  (setq pdf-view-use-scaling t)
+
   :bind (:map pdf-view-mode-map
 	      ("<wheel-left>" . image-backward-hscroll)
 	      ("<wheel-right>" . image-forward-hscroll)
@@ -932,21 +924,24 @@ Counter that by dividing the factor out."
   :defer t
   :config
   (add-hook 'LaTeX-mode-hook 'turn-on-cdlatex)
+  (add-hook 'LaTeX-mode-hook 'turn-on-reftex)
   (add-hook 'LaTeX-mode-hook 'TeX-source-correlate-mode)
   (add-hook 'LaTeX-mode-hook 'smartparens-mode)
   (add-hook 'LaTeX-mode-hook (lambda () (variable-pitch-mode 1)))
   (add-hook 'TeX-after-compilation-finished-functions #'TeX-revert-document-buffer)
 
   ;; somehow prettify symbols are broken in auctex. Need a manual fix
-  ;; (add-hook 'LaTeX-mode-hook (lambda () (setq prettify-symbols-alist tex--prettify-symbols-alist)))
-  ;; (add-hook 'LaTeX-mode-hook (lambda () (setq prettify-symbols-compose-predicate 'tex--prettify-symbols-compose-p)))
+  (add-hook 'LaTeX-mode-hook (lambda () (setq prettify-symbols-alist tex--prettify-symbols-alist)))
+  (add-hook 'LaTeX-mode-hook (lambda () (setq prettify-symbols-compose-predicate 'tex--prettify-symbols-compose-p)))
   
   (setq TeX-view-program-selection '((output-pdf "PDF Tools"))
 	TeX-view-program-list '(("PDF Tools" TeX-pdf-tools-sync-view))
 	TeX-source-correlate-start-server t
-	TeX-error-overview-open-after-TeX-run t)
+	TeX-error-overview-open-after-TeX-run t
+	TeX-parse-self t)
   (setq-default LaTeX-default-environment "align")
-  (setq reftex-plug-into-AUCTeX '(nil t t t t))
+  (setq reftex-plug-into-AUCTeX '(nil t t t t)
+	reftex-insert-label-flags '("s" "sfte"))
   (defun LaTeX-no-insert-label (orig-fun &rest args)
     "turn off automatic labeling"
     (apply orig-fun args '(t)))
@@ -997,13 +992,16 @@ Counter that by dividing the factor out."
 	    "A-a" (lambda () (interactive) (save-buffer) (TeX-command-run-all nil))
 	    "A-b" 'TeX-command-buffer
 	    "A-e" 'LaTeX-environment
-	    "A-i" 'LaTeX-environment
 	    "A-f" 'TeX-font
-	    "A-k" 'TeX-kill-job
-	    "A-v" 'TeX-view
-	    "A-s" 'LaTeX-section
+	    "A-i" 'LaTeX-environment
 	    "A-j" 'LaTeX-insert-item
+	    "A-k" 'TeX-kill-job
+	    "A-l" 'reftex-label
 	    "A-p" 'my-latex-preview
+	    "A-r" 'reftex-reference
+	    "A-t" 'reftex-toc
+	    "A-s" 'LaTeX-section
+	    "A-v" 'TeX-view
 	    "A-9" 'reftex-label
 	    "A-0" 'reftex-reference
 	    "A-[" 'reftex-citation
@@ -1136,18 +1134,20 @@ Counter that by dividing the factor out."
 ;; citar
 (use-package citar
   :config
-  (setq citar-bibliography '("~/Documents/Papers/master.bib"))
+  (setq citar-bibliography '("~/Documents/Papers/master.bib")
+	citar-library-paths '("~/Documents/Papers/"))
   (advice-add #'completing-read-multiple :override #'consult-completing-read-multiple)  ;; use consult-completing-read for enhanced interface
   (setq citar-symbols
 	`((file ,(all-the-icons-faicon "file-o" :face 'all-the-icons-green :v-adjust -0.1) . " ")
 	  (note ,(all-the-icons-material "speaker_notes" :face 'all-the-icons-blue :v-adjust -0.3) . " ")
 	  (link ,(all-the-icons-octicon "link" :face 'all-the-icons-orange :v-adjust 0.01) . " ")))
   (setq citar-symbol-separator "  ")
-  (setq citar-file-open-function (lambda (fpath) (call-process "open" nil 0 nil "-a" "/Applications/Preview.app" fpath)))
+  (setq citar-file-open-function (lambda (fpath) (call-process "open" nil 0 nil "-a" "Preview.app" fpath)))
 
   :bind
-  ("A-q A-b" . citar-open-library-files)
-  ("A-q b" . citar-insert-citation))
+  ;; call with prefix to force rebuild cache everytime
+  ("A-q A-b" . (lambda () (interactive) (let ((current-prefix-arg 4)) (call-interactively 'citar-open-library-file))))
+  ("A-q b" . (lambda () (interactive) (let ((current-prefix-arg 4)) (call-interactively 'citar-insert-citation)))))
 
 
 
@@ -1161,7 +1161,7 @@ Counter that by dividing the factor out."
   (setq arxiv-use-variable-pitch t)
   (setq arxiv-default-download-folder "~/Documents/Papers/")
   (setq arxiv-default-bibliography "~/Documents/Papers/master.bib")
-  (setq arxiv-pdf-open-function (lambda (fpath) (call-process "open" nil 0 nil "-a" "/Applications/Preview.app" fpath)))
+  (setq arxiv-pdf-open-function (lambda (fpath) (call-process "open" nil 0 nil "-a" "Preview.app" fpath)))
   :bind (:map arxiv-mode-map
 	      ("i" . arxiv-prev-entry)
 	      ("k" . arxiv-next-entry))
@@ -1228,5 +1228,9 @@ Counter that by dividing the factor out."
 (use-package package-lint
   :defer t)
 
+
+;; inspire
+(add-to-list 'load-path (expand-file-name "~/.emacs.d/inspire"))
+(require 'inspire)
 
 ;;; init.el ends here
