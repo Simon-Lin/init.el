@@ -48,16 +48,18 @@
     },
     "8\n\n\n\n\n\ntab 8",
     {
+      "t": "#000000\n#fc0000\n\n\n\n\n#2200ff",
       "w": 1.5,
       "h": 1.5
     },
-    "9\n\n\n\n\n\ntab 9",
+    "9\n← tabbar\n\n\n\n\ntab 9",
     {
       "w": 1.5,
       "h": 1.5
     },
-    "0\n\n\n\n\n\ntab 0",
+    "0\n→ tabbar\n\n\n\n\ntab 0",
     {
+      "t": "#000000\n\n\n\n\n\n#2200ff",
       "w": 1.5,
       "h": 1.5
     },
@@ -89,7 +91,7 @@
     },
     "Tab",
     {
-      "t": "#000000\n#fc0000\n\n\n\n\n#0000fc",
+      "t": "#000000\n\n\n\n\n\n#0000fc",
       "a": 4,
       "f": 3,
       "w": 1.5,
@@ -111,6 +113,7 @@
     },
     "W\n\n\n\n\n\nmajor mode specific prefix",
     {
+      "t": "#000000\n#fc0000\n\n\n\n\n#0000fc",
       "f": 3,
       "w": 1.5,
       "h": 1.5
@@ -123,6 +126,7 @@
     },
     "R\n⌦sexp\n\n\n\n\n⌦word",
     {
+      "t": "#000000\n\n\n\n\n\n#0000fc",
       "f": 3,
       "w": 1.5,
       "h": 1.5
@@ -135,6 +139,7 @@
     },
     "Y\n\n\n\n\n\nexpand region",
     {
+      "t": "#000000\n#fc0000\n\n\n\n\n#0000fc",
       "f": 3,
       "w": 1.5,
       "h": 1.5
@@ -153,12 +158,14 @@
     },
     "O\n→ sexp\n\n\n\n\n→ word",
     {
+      "t": "#000000\n\n\n\n\n\n#0000fc",
       "f": 3,
       "w": 1.5,
       "h": 1.5
     },
     "P\n\n\n\n\n\nrecenter",
     {
+      "t": "#000000\n#fc0000\n\n\n\n\n#0000fc",
       "f": 3,
       "w": 1.5,
       "h": 1.5
@@ -205,6 +212,7 @@
     },
     "S\n⌫ line\n\n\n\n\n⌦line",
     {
+      "t": "#000000\n\n\n\n\n\n#0000fc",
       "f": 3,
       "w": 1.5,
       "h": 1.5
@@ -217,47 +225,51 @@
     },
     "F\n\n\n\n\n\n⌦char",
     {
-      "f2": 0,
+      "t": "#000000\n#fc0000\n\n\n\n\n#0000fc",
+      "f": 3,
       "w": 1.5,
       "h": 1.5
     },
     "G\nmark ring\n\n\n\n\nisearch",
     {
+      "f": 3,
       "w": 1.5,
       "h": 1.5
     },
     "H\n← ¶\n\n\n\n\n← line",
     {
+      "f": 3,
       "w": 1.5,
       "h": 1.5
     },
-    "J\n← setence\n\n\n\n\n← char",
+    "J\n← list\n\n\n\n\n← char",
     {
+      "f": 3,
       "w": 1.5,
       "h": 1.5
     },
     "K\npage down\n\n\n\n\n↓ line",
     {
+      "f": 3,
       "w": 1.5,
       "h": 1.5
     },
-    "L\n→ setence\n\n\n\n\n→ char",
+    "L\n→ list\n\n\n\n\n→ char",
     {
+      "f": 3,
       "w": 1.5,
       "h": 1.5
     },
     ":\n→ ¶\n\n\n\n\n→ line",
     {
+      "f": 3,
       "w": 1.5,
       "h": 1.5
     },
-    "\"\n\n\n\n\n\nflyspell correct",
+    "\"\ncompany\n\n\n\n\nflyspell correct",
     {
       "t": "#000000",
       "a": 7,
-      "fa": [
-        5
-      ],
       "w": 3.25,
       "h": 1.5
     },
@@ -279,6 +291,7 @@
     },
     "Z\nredo\n\n\n\n\nundo",
     {
+      "t": "#000000\n\n\n\n\n\n#0000fc",
       "f": 3,
       "w": 1.5,
       "h": 1.5
@@ -291,12 +304,14 @@
     },
     "C\n\n\n\n\n\ncopy",
     {
+      "t": "#000000\n#fc0000\n\n\n\n\n#0000fc",
       "f": 3,
       "w": 1.5,
       "h": 1.5
     },
     "V\nkill ring\n\n\n\n\npaste",
     {
+      "t": "#000000\n\n\n\n\n\n#0000fc",
       "f": 3,
       "w": 1.5,
       "h": 1.5
@@ -315,6 +330,7 @@
     },
     "M\n\n\n\n\n\nC-u",
     {
+      "t": "#000000\n#fc0000\n\n\n\n\n#0000fc",
       "f": 3,
       "w": 1.5,
       "h": 1.5
@@ -327,6 +343,7 @@
     },
     ">\nend buffer\n\n\n\n\n→ defun",
     {
+      "t": "#000000\n\n\n\n\n\n#0000fc",
       "f": 3,
       "w": 1.5,
       "h": 1.5
@@ -335,6 +352,7 @@
     {
       "t": "#000000",
       "a": 7,
+      "f": 3,
       "w": 4,
       "h": 1.5
     },
@@ -361,7 +379,7 @@
     },
     "Alt",
     {
-      "t": "#000000\n#ff0000\n\n#ff0000\n\n\n#0020ff\n#0020ff\n\n#0000ff\n#ff0000",
+      "t": "#000000\n\n\n#ff0000\n\n\n\n#0020ff\n\n#0000ff\n#ff0000",
       "a": 4,
       "w": 8.5,
       "h": 1.5
