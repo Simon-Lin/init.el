@@ -90,11 +90,8 @@
 ;; icons
 (use-package all-the-icons
   :config
-  (use-package all-the-icons-dired)
   (use-package all-the-icons-completion)
   (all-the-icons-completion-mode)
-  (add-hook 'dired-mode-hook 'all-the-icons-dired-mode)
-  (setq all-the-icons-dired-monochrome nil)
   )
 
 ;; modeline
@@ -450,6 +447,7 @@ Version 2018-09-10"
 (setq set-mark-command-repeat-pop t)
 (setq select-enable-clipboard nil)
 (setq shift-select-mode nil)
+(save-place-mode)
 (delete-selection-mode 1)
 (tooltip-mode -1)
 (setq tab-bar-show nil)
@@ -607,7 +605,8 @@ Version 2018-09-10"
 		    ;;A-b/b citar
 		    "A-c" 'save-buffers-kill-emacs
 		    ;;A-C  restart-emacs
-		    "A-d" 'dired
+		    "A-d" 'dirvish-dired
+		    "d"   'dirvish
 		    "A-e" 'eval-last-sexp
 		    "e"   'eval-defun
 		    "A-f" 'find-file
@@ -660,37 +659,47 @@ Version 2018-09-10"
 
 ;;; ========== Utilities ==========
 
-;; Dired hacks
-(use-package dired-hacks-utils
-  :defer t
-  :hook
-  (dired-mode . dired-utils-format-information-line-mode)
-  (dired-mode . dired-filter-mode)
-  ;; (dired-mode . dired-du-mode) ;; too slow -- just turn it on when I want to check folder size
+(use-package dirvish
   :config
-  (use-package dired-subtree)
-  (use-package dired-filter)
-  (use-package dired-du)
-  (setq dired-du-size-format t)
+  (setq dired-recursive-deletes 'always)
+  (setq delete-by-moving-to-trash t)
+  (setq dired-dwim-target t)
   (setq insert-directory-program "/opt/homebrew/bin/gls") ;; use gls from coreutils for --group-directories-first option
   (setq dired-listing-switches "-agho --group-directories-first")
+  
+  (setq dirvish-attributes '(file-size all-the-icons))
+  (setq dirvish-bookmarks-alist
+	'(("h" "~/" "Home")
+	  ("w" "~/Downloads/" "Downloads")
+	  ("d" "~/Documents/" "Documents")
+	  ("v" "/Volumes/" "Volumes")
+	  ("t" "~/.Trash/" "Trash")))
+  (dirvish-override-dired-mode)
+  (use-package dired-subtree)
+  (use-package dired-filter)
+  
   (general-define-key :keymaps 'dired-mode-map
-		    "i" 'dired-previous-line
-		    "k" 'dired-next-line
-		    "j" '("go-up-one-level" . (lambda () (interactive) (find-alternate-file "..")))
-		    "l" 'dired-subtree-insert
-		    "j" 'dired-subtree-remove
-		    "g" 'dired-goto-file
-		    "o" 'dired-find-file
-		    "r" 'revert-buffer
-		    "q" '("quit-window" . (lambda () (interactive) (quit-window t)))
-		    "RET" 'dired-find-alternate-file
-		    "<A-return>" 'dired-find-file-other-window
-		    )
+		      "i" 'dired-previous-line
+		      "k" 'dired-next-line
+		      "l" 'dired-subtree-insert
+		      "j" 'dired-subtree-remove
+		      "g" 'dired-goto-file
+		      "f" 'dirvish-file-info-menu
+		      "r" 'dirvish-show-history
+		      "b" 'dirvish-goto-bookmark
+		      "a" 'dirvish-mark-actions-menu
+		      "?" 'dirvish-dispatch
+		      "`" 'dirvish-toggle-fullscreen
+		      ;; "q" '("quit-window" . (lambda () (interactive) (quit-window t)))
+		      ;; "RET" 'dired-find-alternate-file
+		      "<A-return>" 'dired-find-file-other-window
+		      )
   (define-key dired-mode-map (kbd "A-w") dired-filter-map)
-  (put 'dired-find-alternate-file 'disabled nil) ;; disable annoying popups when calling find-alternate-file
-  ;; (setq dired-subtree-use-backgrounds nil)
-  )
+  
+  :hook
+    (dired-mode . dired-filter-mode)
+    (dirvish-mode . centaur-tabs-local-mode))
+
 
 ;; helpful: emacs help+
 (use-package helpful
@@ -812,6 +821,9 @@ Version 2018-09-10"
 	  (?. "\\cdot" "\\cdots")
 	  (?< "\\leftarrow" "\\Leftarrow" "\\longleftarrow")
 	  (?> "\\rightarrow" "\\Rightarrow" "\\longrightarrow")))
+  (setq cdlatex-math-modify-alist
+	'((?t "\\text" nil t nil nil)
+	  (?B "\\mathbb" nil t nil nil)))
 
   (defun my-cdlatex-read-char-with-help (alist start-level max-level prompt-format
 					       header-format prefix bindings)
@@ -1234,3 +1246,4 @@ Counter that by dividing the factor out."
 (require 'inspire)
 
 ;;; init.el ends here
+(put 'dired-find-alternate-file 'disabled nil)
