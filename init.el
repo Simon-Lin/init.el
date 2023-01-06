@@ -451,6 +451,7 @@ Version 2018-09-10"
 (delete-selection-mode 1)
 (tooltip-mode -1)
 (setq tab-bar-show nil)
+(setq use-short-answers t) ; new in Emacs 28
 
 
 (defun new-empty-buffer ()
@@ -459,14 +460,6 @@ Version 2018-09-10"
   (let ((buf (generate-new-buffer "untitled")))
     (switch-to-buffer buf)
     (fundamental-mode)))
-
-;; advice wrapper for yes-or-no-p -> y-or-n-p
-(defun yes-or-no-p->-y-or-n-p (orig-fun &rest r)
-  (cl-letf (((symbol-function 'yes-or-no-p) #'y-or-n-p))
-    (apply orig-fun r)))
-
-(advice-add 'kill-buffer :around #'yes-or-no-p->-y-or-n-p)
-(advice-add 'revert-buffer :around #'yes-or-no-p->-y-or-n-p)
 
 (defun my-scroll-other-window ()
   (interactive)
@@ -517,6 +510,18 @@ Version 2018-09-10"
 (setq mac-command-modifier 'alt)
 (setq mac-option-modifier 'meta)
 (setq mac-pass-command-to-system nil) ;; set macos system-short off
+
+;; Re-instate my own A- bindings after loading of `iso-transl'
+(with-eval-after-load 'iso-transl
+  (map-keymap
+     (lambda (key cmd)
+       (let ((key-desc (single-key-description key)))
+         (when (string-match-p "^A-" key-desc)
+           ;; Nuke all the A- bindings
+           (define-key key-translation-map (kbd key-desc) nil))))
+     key-translation-map)
+  ;; Catch the thief
+  (debug-on-entry 'iso-transl-define-keys))
 
 ;; top level keymaps
 (general-define-key
@@ -651,6 +656,7 @@ Version 2018-09-10"
 		    "A-[" 'tab-bar-switch-to-prev-tab
 		    "A-c" 'tab-bar-close-tab
 		    )
+
 ;; ace window
 ;; (use-package ace-window
 ;;   :bind (("A-b A-o" . ace-window)))
@@ -718,6 +724,7 @@ Version 2018-09-10"
 	    "C-h A-j" 'describe-mode
 	    "C-h A-o" 'describe-symbol
 	    "C-h A-k" 'describe-key
+	    "C-h A-K" 'describe-keymap
 	    "C-h A-b" 'embark-bindings))
 
 ;; restart emacs within emacs
@@ -880,7 +887,7 @@ Version 2018-09-10"
 insert the left right pair of the indicated pair.
 if the active region is set, wrap the pair around the region.
 without the pair given, prompt the user for inseted pair."
-  (interactive "clnsert left-right pair: ")
+  (interactive "cInsert left-right pair: ")
   (let (p-beg p-end pos1 pos2)
     (cond
      ((eq pair ?\()
@@ -996,6 +1003,28 @@ Counter that by dividing the factor out."
 	    (preview-environment 1))))))
     (deactivate-mark))
 
+  (defun my-latex-includegraphics (&optional char)
+    "Insert a latex includegraphics snippet."
+    (interactive "cInclude graphics with (s)cale/(w)idth/(h)eight: ")
+    (let ((form "") (size "") (unit "")
+	  (units '("\\textwidth" "\\linewidth" "\\columnwidth" "cm" "mm" "pt" "in")))
+      (cond ((eq char ?s)
+	     (setq form "scale="))
+	    ((eq char ?w)
+	     (setq form "width="))
+	    ((eq char ?h)
+	     (setq form "height="))
+	    ((eq char ?\r)
+	     (setq form "no input. insert blank template."))
+	    (t (error "Invalid command -- must be one of s/w/h/RET")))
+      (unless (eq char ?\r)
+	(setq size (read-string (concat form ": ")))
+	(unless (eq char ?s)
+	  (setq unit (completing-read (concat form size) units nil t nil nil "\\linewidth"))))
+      (insert "\\includegraphics[" form size unit "]{}"))
+    (indent-according-to-mode)
+    (backward-char 1))
+  
   :general
   (:keymaps 'LaTeX-mode-map
 	    "A-e" 'latex-backward-delete-word)
@@ -1005,6 +1034,7 @@ Counter that by dividing the factor out."
 	    "A-b" 'TeX-command-buffer
 	    "A-e" 'LaTeX-environment
 	    "A-f" 'TeX-font
+	    "A-g" 'my-latex-includegraphics
 	    "A-i" 'LaTeX-environment
 	    "A-j" 'LaTeX-insert-item
 	    "A-k" 'TeX-kill-job
@@ -1246,4 +1276,4 @@ Counter that by dividing the factor out."
 (require 'inspire)
 
 ;;; init.el ends here
-(put 'dired-find-alternate-file 'disabled nil)
+
