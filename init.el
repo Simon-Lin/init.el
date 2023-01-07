@@ -159,6 +159,7 @@
   (setq centaur-tabs-set-icons t)
   (setq centaur-tabs-gray-out-icons 'buffer)
   (setq centaur-tabs-set-close-button nil)
+  (setq centaur-tabs-set-modified-marker nil)
   (setq centaur-tabs-show-count t)
   (setq centaur-tabs-enable-ido-completion nil)
   (defun centaur-tabs-buffer-groups () ;; don't single out org-mode
@@ -186,6 +187,10 @@
        (centaur-tabs-get-group-name (current-buffer))))))
 
   (setq centaur-tabs-show-jump-identifier 'always)
+  (set-face-attribute 'centaur-tabs-jump-identifier-selected nil
+		      :foreground nil)
+  (set-face-attribute 'centaur-tabs-jump-identifier-unselected nil
+		      :foreground nil)
   (general-define-key
    "M-b" 'centaur-tabs-ace-jump
    "A-1" 'centaur-tabs-select-visible-tab
@@ -658,8 +663,8 @@ Version 2018-09-10"
 		    )
 
 ;; ace window
-;; (use-package ace-window
-;;   :bind (("A-b A-o" . ace-window)))
+(use-package ace-window
+  :bind (("A-b A-o" . ace-window)))
 
 
 
@@ -1033,8 +1038,7 @@ Counter that by dividing the factor out."
 	    "A-a" (lambda () (interactive) (save-buffer) (TeX-command-run-all nil))
 	    "A-b" 'TeX-command-buffer
 	    "A-e" 'LaTeX-environment
-	    "A-f" 'TeX-font
-	    "A-g" 'my-latex-includegraphics
+	    "A-f" 'my-latex-includegraphics
 	    "A-i" 'LaTeX-environment
 	    "A-j" 'LaTeX-insert-item
 	    "A-k" 'TeX-kill-job
