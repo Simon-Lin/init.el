@@ -21,6 +21,7 @@
 (straight-use-package 'use-package)
 (straight-use-package 'general)
 (setq straight-use-package-by-default t)
+(setq straight-vc-git-default-protocol 'ssh)
 
 ;; benchmark startup time
 ;; (use-package benchmark-init
