@@ -497,6 +497,15 @@ Version 2018-09-10"
   (interactive)
   (find-file (expand-file-name (concat user-emacs-directory "init.el"))))
 
+(defun forward-word-or-other-window ()
+  "Cycle through the windows via repeated press of A-b A-o A-o..."
+  (interactive)
+  (if (eq last-command 'other-window)
+      (progn
+	(other-window 1)
+	(setq this-command 'other-window))
+    (forward-word)))
+
 ;; drag stuff around
 (use-package drag-stuff
   :config
@@ -556,7 +565,7 @@ Version 2018-09-10"
  "A-L" 'forward-list
  ;;A-m  C-u
  ;;A-n  C-g
- "A-o" 'forward-word
+ "A-o" 'forward-word-or-other-window
  "A-O" 'forward-sexp
  "A-p" 'recenter-top-bottom
  ;;A-q  file/system prefix
@@ -664,8 +673,9 @@ Version 2018-09-10"
 		    )
 
 ;; ace window
-(use-package ace-window
-  :bind (("A-b A-o" . ace-window)))
+;; (use-package ace-window
+;;   :config (setq aw-scope 'frame)
+;;   :bind (("A-b A-o" . ace-window)))
 
 
 
