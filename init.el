@@ -8,12 +8,12 @@
 (defvar bootstrap-version)
 (let ((bootstrap-file
        (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
-      (bootstrap-version 5))
+      (bootstrap-version 6))
   (unless (file-exists-p bootstrap-file)
     (with-current-buffer
-	(url-retrieve-synchronously
-	 "https://raw.githubusercontent.com/raxod502/straight.el/develop/install.el"
-	 'silent 'inhibit-cookies)
+        (url-retrieve-synchronously
+         "https://raw.githubusercontent.com/radian-software/straight.el/develop/install.el"
+         'silent 'inhibit-cookies)
       (goto-char (point-max))
       (eval-print-last-sexp)))
   (load bootstrap-file nil 'nomessage))
@@ -223,18 +223,29 @@
 
 ;;; ========== Completion framework ==========
 
-(use-package selectrum
+(use-package vertico
+  :straight (:files (:defaults "extensions/*"))
   :config
-  (defun my-selectrum-backward-kill-word-wrapper (&optional arg)
-    "if selectrum--last-command is find-file, call backward-kill-sexp, otherwise call backward-kill-word."
-    (interactive "p")
-    (if minibuffer-completing-file-name ;; a file action is invoked in minibuffer
-	(selectrum-backward-kill-sexp arg)
-      (backward-kill-word (1+ arg))))
-  (setq selectrum-extend-current-candidate-highlight t)
-  (bind-key "A-e" 'my-selectrum-backward-kill-word-wrapper 'selectrum-minibuffer-map)
-  ;; (unbind-key "M-i" 'selectrum-minibuffer-map) ;; M-i has two duplicate keymaps, unbind the first one (no longer needed since I use A-I for page up)
-  (selectrum-mode 1))
+  (vertico-mouse-mode 1)
+  (define-key vertico-map (kbd "A-e") #'vertico-directory-delete-word)
+  (define-key vertico-map (kbd "A-d") #'vertico-directory-delete-char)
+  (define-key vertico-map (kbd "RET") #'vertico-directory-enter)
+  (add-hook 'rfn-eshadow-update-overlay-hook #'vertico-directory-tidy)
+  :init
+  (vertico-mode))
+
+;; (use-package selectrum
+;;   :config
+;;   (defun my-selectrum-backward-kill-word-wrapper (&optional arg)
+;;     "if selectrum--last-command is find-file, call backward-kill-sexp, otherwise call backward-kill-word."
+;;     (interactive "p")
+;;     (if minibuffer-completing-file-name ;; a file action is invoked in minibuffer
+;; 	(selectrum-backward-kill-sexp arg)
+;;       (backward-kill-word (1+ arg))))
+;;   (setq selectrum-extend-current-candidate-highlight t)
+;;   (bind-key "A-e" 'my-selectrum-backward-kill-word-wrapper 'selectrum-minibuffer-map)
+;;   ;; (unbind-key "M-i" 'selectrum-minibuffer-map) ;; M-i has two duplicate keymaps, unbind the first one (no longer needed since I use A-I for page up)
+;;   (selectrum-mode 1))
 
 (use-package consult ;; keybindings of consult are in the global keymaps section
   :config
@@ -250,8 +261,10 @@
 
 (use-package prescient
   :config
-  (use-package selectrum-prescient)
-  (selectrum-prescient-mode 1)
+  ;; (use-package selectrum-prescient)
+  ;; (selectrum-prescient-mode 1)
+  (use-package vertico-prescient)
+  (vertico-prescient-mode 1)
   (prescient-persist-mode 1))
 (use-package marginalia
   :config
@@ -625,13 +638,15 @@ Version 2018-09-10"
 		    ;;A-b/b citar
 		    "A-c" 'save-buffers-kill-emacs
 		    ;;A-C  restart-emacs
-		    "A-d" 'dirvish-dired
+		    "A-d" 'dired
 		    "d"   'dirvish
 		    "A-e" 'eval-last-sexp
+		    "A-E" 'eval-buffer
 		    "e"   'eval-defun
 		    "A-f" 'find-file
 		    "f"   'find-file-other-window
 		    ;;A-g  magit
+		    "g"   'revert-buffer
 		    "A-i" 'open-user-init-file
 		    "A-m" 'consult-bookmark
 		    ;;A-p  projectile-map
@@ -1111,11 +1126,10 @@ Counter that by dividing the factor out."
     (let ((env (completing-read "Environment type: "
 				my-org-environment-list nil t nil nil my-org-environment-default)))
       (indent-according-to-mode)
-      (insert "\\begin{" env "}\n\n")
-      (indent-according-to-mode)
+      (insert "\\begin{" env "}")
+      (newline-and-indent 2)
       (insert "\\end{" env "}")
-      (forward-line -1)
-      (indent-according-to-mode)))
+      (previous-line)))
 
   ;; header and bullet settings
   (use-package org-superstar
@@ -1127,7 +1141,7 @@ Counter that by dividing the factor out."
     :hook (org-mode . (lambda () (org-superstar-mode 1))))
   
   (setq org-startup-indented t)
-  (set-face-attribute 'org-ellipsis nil :foreground "grey70" :underline nil :inherit 'shadow)  
+  (set-face-attribute 'org-ellipsis nil :foreground "grey70" :underline nil :inherit 'shadow)
   (setq org-ellipsis " ▾")  ; possible choices: ↴ ▼ ↝ » …
   
   (setq org-cycle-separator-lines 2)
@@ -1181,6 +1195,7 @@ Counter that by dividing the factor out."
 	    "A-p" 'my-org-latex-preview
 	    "A-i" 'my-org-insert-environment
 	    "A-r" 'org-redisplay-inline-images
+	    "A-," 'org-insert-structure-template
 	    )
   (:keymaps 'org-cdlatex-mode-map
 	    "A-e" 'latex-backward-delete-word
@@ -1203,9 +1218,14 @@ Counter that by dividing the factor out."
 
   :bind
   ;; call with prefix to force rebuild cache everytime
-  ("A-q A-b" . (lambda () (interactive) (let ((current-prefix-arg 4)) (call-interactively 'citar-open-library-file))))
+  ("A-q A-b" . (lambda () (interactive) (let ((current-prefix-arg 4)) (call-interactively 'citar-open))))
   ("A-q b" . (lambda () (interactive) (let ((current-prefix-arg 4)) (call-interactively 'citar-insert-citation)))))
 
+
+(use-package citar-embark
+  :after citar embark
+  :no-require
+  :config (citar-embark-mode))
 
 
 ;;; ========== Major modes ==========
@@ -1216,6 +1236,7 @@ Counter that by dividing the factor out."
   (set-face-attribute 'arxiv-abstract-face nil :inherit 'default)
   (set-face-attribute 'arxiv-subfield-face nil :inherit 'font-lock-variable-name-face)
   (setq arxiv-use-variable-pitch t)
+  (setq arxiv-startup-with-abstract-window t)
   (setq arxiv-default-download-folder "~/Documents/Papers/")
   (setq arxiv-default-bibliography "~/Documents/Papers/master.bib")
   (setq arxiv-pdf-open-function (lambda (fpath) (call-process "open" nil 0 nil "-a" "Preview.app" fpath)))
@@ -1226,6 +1247,19 @@ Counter that by dividing the factor out."
   ('arxiv-mode . 'centaur-tabs-local-mode)
   ('arxiv-abstract-mode . 'centaur-tabs-local-mode))
 
+;; inspire
+(use-package inspire :straight (:type git :host github :repo "Simon-Lin/inspire.el" :branch "master")
+  :config
+  (setq inspire-default-download-folder "~/Documents/Papers/")
+  (setq inspire-master-bibliography-file "~/Documents/Papers/master.bib")
+  (setq inspire-pdf-open-function (lambda (fpath) (call-process "open" nil 0 nil "-a" "Preview.app" fpath)))
+  :bind (:map inspire-mode-map
+	      ("i" . inspire-prev-entry)
+	      ("k" . inspire-next-entry))
+  :hook
+  ('inspire-mode . 'centaur-tabs-local-mode)
+  ('inspire-record-mode . 'centaur-tabs-local-mode)
+  ('inspire-author-mode . 'centaur-tabs-local-mode))
 
 ;; magit
 (use-package magit
@@ -1285,10 +1319,6 @@ Counter that by dividing the factor out."
 (use-package package-lint
   :defer t)
 
-
-;; inspire
-(add-to-list 'load-path (expand-file-name "~/.emacs.d/inspire"))
-(require 'inspire)
 
 ;;; init.el ends here
 
