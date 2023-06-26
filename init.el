@@ -103,20 +103,25 @@
   :config
   (set-face-attribute 'mode-line nil :family "Lucida Grande" :box nil :height 130)
   (set-face-attribute 'mode-line-inactive nil :family "Lucida Grande" :box nil :height 130)
+
+  (setq doom-modeline-support-imenu t)
   (setq doom-modeline-height 30)
   (setq doom-modeline-bar-width 10)
   (setq doom-modeline-hud t)
   (setq doom-modeline-window-width-limit fill-column)
   (setq doom-modeline-project-detection 'auto)
   (setq doom-modeline-buffer-file-name-style 'auto)
-  (setq doom-modeline-icon (display-graphic-p))
+  (setq doom-modeline-icon t)
   (setq doom-modeline-major-mode-icon t)
   (setq doom-modeline-major-mode-color-icon t)
   (setq doom-modeline-buffer-state-icon t)
   (setq doom-modeline-buffer-modification-icon t)
-  (setq doom-modeline-unicode-fallback nil)
+  (setq doom-modeline-time-icon t)
+  (setq doom-modeline-unicode-fallback t)
+  (setq doom-modeline-buffer-name t)
+  (setq doom-modeline-highlight-modified-buffer-name t)
   (setq doom-modeline-minor-modes nil)
-  (setq doom-modeline-enable-word-count t)
+  (setq doom-modeline-enable-word-count nil)
   (setq doom-modeline-continuous-word-count-modes '(markdown-mode gfm-mode org-mode))
   (setq doom-modeline-buffer-encoding t)
   (setq doom-modeline-indent-info nil)
@@ -130,6 +135,7 @@
   (setq doom-modeline-lsp t)
   (setq doom-modeline-github nil)
   (setq doom-modeline-github-interval (* 30 60))
+  (setq doom-modeline-modal nil)
   (setq doom-modeline-modal-icon nil)
   (setq doom-modeline-mu4e nil)
   (setq doom-modeline-gnus nil)
@@ -137,16 +143,37 @@
   (setq doom-modeline-gnus-excluded-groups '("dummy.group"))
   (setq doom-modeline-irc nil)
   (setq doom-modeline-irc-stylize 'identity)
-  (setq doom-modeline-env-version nil)
+  (setq doom-modeline-battery t)
+  (setq doom-modeline-time t)
+  (setq doom-modeline-display-misc-in-all-mode-lines t)
+  (setq doom-modeline-env-version t)
+  (setq doom-modeline-env-enable-python t)
+  (setq doom-modeline-env-enable-ruby t)
+  (setq doom-modeline-env-enable-perl t)
+  (setq doom-modeline-env-enable-go t)
+  (setq doom-modeline-env-enable-elixir t)
+  (setq doom-modeline-env-enable-rust t)
+  (setq doom-modeline-env-python-executable "python") ; or `python-shell-interpreter'
+  (setq doom-modeline-env-ruby-executable "ruby")
+  (setq doom-modeline-env-perl-executable "perl")
+  (setq doom-modeline-env-go-executable "go")
+  (setq doom-modeline-env-elixir-executable "iex")
+  (setq doom-modeline-env-rust-executable "rustc")
   (setq doom-modeline-env-load-string "...")
   (setq doom-modeline-before-update-env-hook nil)
   (setq doom-modeline-after-update-env-hook nil)
-  ;; display time
   (setq display-time-default-load-average nil)
   (setq display-time-format "%a %H:%M")
-  (display-time-mode 1)
-  ;; display battery
-  (display-battery-mode 1))
+  (display-time-mode t)
+  (display-battery-mode t))
+
+(use-package procress :straight (:host github :repo "haji-ali/procress")
+  :after (auctex)
+  :commands procress-auctex-mode
+  :init
+  (add-hook 'LaTeX-mode-hook #'procress-auctex-mode)
+  :config
+  (procress-load-default-svg-images))
 
 ;; tabs
 (use-package centaur-tabs :straight (:type git :host github :repo "Simon-Lin/centaur-tabs" :branch "master")
@@ -224,15 +251,16 @@
 ;;; ========== Completion framework ==========
 
 (use-package vertico
-  :straight (:files (:defaults "extensions/*"))
+  :straight (:files (:defaults "extensions/*.el"))
   :config
-  (vertico-mouse-mode 1)
   (define-key vertico-map (kbd "A-e") #'vertico-directory-delete-word)
   (define-key vertico-map (kbd "A-d") #'vertico-directory-delete-char)
   (define-key vertico-map (kbd "RET") #'vertico-directory-enter)
   (add-hook 'rfn-eshadow-update-overlay-hook #'vertico-directory-tidy)
   :init
-  (vertico-mode))
+  (vertico-mode)
+  (vertico-mouse-mode)
+  (vertico-multiform-mode))
 
 ;; (use-package selectrum
 ;;   :config
@@ -352,31 +380,64 @@
 (add-hook 'text-mode-hook 'flyspell-mode)
 (add-hook 'prog-mode-hook 'flyspell-prog-mode)
 
-(use-package company
+;; there is a bug in how mac port handles dylib that causes emacs to freeze
+;; should be fixed with emacs 29. Come back later.
+;;(use-package jinx
+;;  :hook (emacs-startup . global-jinx-mode)
+;;  :bind (("M-'" . jinx-correct)
+;;         ("C-M-'" . jinx-languages)))
+
+(use-package corfu
+  :straight (corfu :files (:defaults "extensions/*.el"))
   :config
-  (use-package company-posframe)
-  (setq company-posframe-show-metadata nil
-	company-posframe-show-indicator nil)
-  :bind (:map company-active-map
-	      ("A-k" . company-select-next)
-	      ("A-i" . company-select-previous)
-	      ("TAB" . company-complete-common-or-cycle)
-	      ("<backtab>" . (lambda () (interactive) (company-complete-common-or-cycle -1))))
-  :hook ((prog-mode . company-mode)
-	 (text-mode . company-mode)
-	 (company-mode . company-posframe-mode)))
+  (setq corfu-cycle t
+	corfu-auto t                 ;; Enable auto completion
+	corfu-separator ?\s          ;; Orderless field separator
+	corfu-quit-at-boundary nil   ;; Never quit at completion boundary
+	corfu-quit-no-match t        ;; Never quit, even if there is no match
+	corfu-preview-current t      ;; Disable current candidate preview
+	corfu-preselect 'valid       ;; Preselect the prompt
+	corfu-on-exact-match nil     ;; Configure handling of exact matches
+	corfu-scroll-margin 5)       ;; Use scroll margin
+  (setq corfu-echo-delay '(0 . 0))
+  ;; (setq corfu-popupinfo-delay 0)
+  :init
+  (corfu-echo-mode)
+  (corfu-popupinfo-mode)
+  (global-corfu-mode))
 
-(use-package company-math :defer t)
-(use-package company-auctex :defer t)
-(use-package company-reftex :defer t)
+(use-package kind-icon
+  :ensure t
+  :after corfu
+  :config
+  (setq kind-icon-default-face 'corfu-default)
+  (add-to-list 'corfu-margin-formatters #'kind-icon-margin-formatter))
 
-(defun company-latex-setup ()
-    (setq-local company-backends
-		(append '((company-math-symbols-latex company-latex-commands)
-			  (:separate company-reftex-labels company-reftex-citations)
-			  (:separate company-auctex-macros company-auctex-symbols company-auctex-environments))
-			company-backends)))
-(add-hook 'TeX-mode-hook 'company-latex-setup)
+;; (use-package company
+;;   :config
+;;   (use-package company-posframe)
+;;   (setq company-posframe-show-metadata nil
+;; 	company-posframe-show-indicator nil)
+;;   :bind (:map company-active-map
+;; 	      ("A-k" . company-select-next)
+;; 	      ("A-i" . company-select-previous)
+;; 	      ("TAB" . company-complete-common-or-cycle)
+;; 	      ("<backtab>" . (lambda () (interactive) (company-complete-common-or-cycle -1))))
+;;   :hook ((prog-mode . company-mode)
+;; 	 (text-mode . company-mode)
+;; 	 (company-mode . company-posframe-mode)))
+
+;; (use-package company-math :defer t)
+;; (use-package company-auctex :defer t)
+;; (use-package company-reftex :defer t)
+
+;; (defun company-latex-setup ()
+;;     (setq-local company-backends
+;; 		(append '((company-math-symbols-latex company-latex-commands)
+;; 			  (:separate company-reftex-labels company-reftex-citations)
+;; 			  (:separate company-auctex-macros company-auctex-symbols company-auctex-environments))
+;; 			company-backends)))
+;; (add-hook 'TeX-mode-hook 'company-latex-setup)
 
 ;; flycheck
 (use-package flycheck
@@ -1214,7 +1275,10 @@ Counter that by dividing the factor out."
 	  (note ,(all-the-icons-material "speaker_notes" :face 'all-the-icons-blue :v-adjust -0.3) . " ")
 	  (link ,(all-the-icons-octicon "link" :face 'all-the-icons-orange :v-adjust 0.01) . " ")))
   (setq citar-symbol-separator "  ")
-  (setq citar-file-open-function (lambda (fpath) (call-process "open" nil 0 nil "-a" "Preview.app" fpath)))
+  (setq citar-file-open-functions
+	`(("html" . citar-file-open-external)
+	  ("pdf" . (lambda (fpath) (call-process "open" nil 0 nil "-a" "Preview.app" fpath)))
+	  ("t" . find-file)))
 
   :bind
   ;; call with prefix to force rebuild cache everytime
