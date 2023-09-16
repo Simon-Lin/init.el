@@ -75,8 +75,9 @@
   (setq dashboard-show-shortcuts t)
   (setq dashboard-items '((recents  . 5)))
   (setq dashboard-set-footer nil)
-  (setq dashboard-set-heading-icons t)
+  ;; (setq dashboard-set-heading-icons t) ; buggy now. Waiting for the fix
   (setq dashboard-set-file-icons t)
+  (setq dashboard-icon-type 'all-the-icons)
   (dashboard-setup-startup-hook)
   (bind-keys :map dashboard-mode-map
 	     ("i" . dashboard-previous-line)
@@ -85,15 +86,18 @@
 ;; one can never have more themes
 ;; (use-package zenburn-theme)
 ;; (use-package solarized-theme
-;; (use-package ample-theme)
-(use-package flatland-theme)
-(load-theme 'flatland t)
+;; (use-package flatland-theme)
+;; (use-package color-theme-sanityinc-tomorrow)
+(use-package material-theme)
+(load-theme 'material t)
+
 ;; icons
 (use-package all-the-icons
   :config
   (use-package all-the-icons-completion)
-  (all-the-icons-completion-mode)
-  )
+  (add-hook 'marginalia-mode-hook #'all-the-icons-completion-marginalia-setup)
+  (all-the-icons-completion-mode))
+(use-package nerd-icons)
 
 ;; modeline
 (use-package doom-modeline
@@ -244,8 +248,8 @@
 (global-hl-line-mode 1)
 (global-prettify-symbols-mode)
 (global-visual-line-mode)
-;; (pixel-scroll-mode)   NOT working
-
+(pixel-scroll-precision-mode)
+(setq pixel-scroll-precision-interpolate-page t)
 
 
 ;;; ========== Completion framework ==========
@@ -262,19 +266,6 @@
   (vertico-mouse-mode)
   (vertico-multiform-mode))
 
-;; (use-package selectrum
-;;   :config
-;;   (defun my-selectrum-backward-kill-word-wrapper (&optional arg)
-;;     "if selectrum--last-command is find-file, call backward-kill-sexp, otherwise call backward-kill-word."
-;;     (interactive "p")
-;;     (if minibuffer-completing-file-name ;; a file action is invoked in minibuffer
-;; 	(selectrum-backward-kill-sexp arg)
-;;       (backward-kill-word (1+ arg))))
-;;   (setq selectrum-extend-current-candidate-highlight t)
-;;   (bind-key "A-e" 'my-selectrum-backward-kill-word-wrapper 'selectrum-minibuffer-map)
-;;   ;; (unbind-key "M-i" 'selectrum-minibuffer-map) ;; M-i has two duplicate keymaps, unbind the first one (no longer needed since I use A-I for page up)
-;;   (selectrum-mode 1))
-
 (use-package consult ;; keybindings of consult are in the global keymaps section
   :config
   ;; quick hack for using consult to open recent file in other window
@@ -289,8 +280,6 @@
 
 (use-package prescient
   :config
-  ;; (use-package selectrum-prescient)
-  ;; (selectrum-prescient-mode 1)
   (use-package vertico-prescient)
   (vertico-prescient-mode 1)
   (prescient-persist-mode 1))
@@ -380,12 +369,34 @@
 (add-hook 'text-mode-hook 'flyspell-mode)
 (add-hook 'prog-mode-hook 'flyspell-prog-mode)
 
-;; there is a bug in how mac port handles dylib that causes emacs to freeze
-;; should be fixed with emacs 29. Come back later.
-;;(use-package jinx
-;;  :hook (emacs-startup . global-jinx-mode)
-;;  :bind (("M-'" . jinx-correct)
-;;         ("C-M-'" . jinx-languages)))
+;; (use-package jinx
+;;   :defer t
+;;   :init
+;;   (defun my-jinx--load-dicts ()
+;;   "Initialize broker and dicts from jinx-mod dynamic module in a thread safe manner."
+;;   (make-thread 'jinx--load-dicts-thread "jinx--load-dicts-thread"))
+  
+;;   (defun jinx--load-dicts-thread ()
+;;     "Thread runner for `jinx--load-dicts' to load the actual dictionaries."
+;;     (with-mutex jinx--mutex
+;;       (setq jinx--dicts (delq nil (mapcar #'jinx--mod-dict
+;;                                           (split-string jinx-languages)))
+;;             jinx--syntax-table (make-syntax-table jinx--base-syntax-table))
+;;       (unless jinx--dicts
+;; 	(message "Jinx: No dictionaries available for %S" jinx-languages))
+;;       (dolist (dict jinx--dicts)
+;; 	(cl-loop for c across (jinx--mod-wordchars dict) do
+;; 		 (modify-syntax-entry c "w" jinx--syntax-table)))
+;;       (modify-syntax-entry ?' "w" jinx--syntax-table)
+;;       (modify-syntax-entry ?’ "w" jinx--syntax-table)
+;;       (modify-syntax-entry ?. "." jinx--syntax-table)))
+
+;;   (advice-add 'jinx--load-dicts :override #'my-jinx--load-dicts)
+  
+;;   :hook (emacs-startup . global-jinx-mode)
+;;   :bind (("M-$" . jinx-correct)
+;;          ("C-M-$" . jinx-languages)))
+
 
 (use-package corfu
   :straight (corfu :files (:defaults "extensions/*.el"))
@@ -399,12 +410,41 @@
 	corfu-preselect 'valid       ;; Preselect the prompt
 	corfu-on-exact-match nil     ;; Configure handling of exact matches
 	corfu-scroll-margin 5)       ;; Use scroll margin
-  (setq corfu-echo-delay '(0 . 0))
+  (setq corfu-echo-delay '(0.7 . 0.2))
   ;; (setq corfu-popupinfo-delay 0)
   :init
   (corfu-echo-mode)
   (corfu-popupinfo-mode)
   (global-corfu-mode))
+
+(use-package cape
+  :init
+  (add-to-list 'completion-at-point-functions #'cape-dabbrev)
+  (add-to-list 'completion-at-point-functions #'cape-file)
+  (add-to-list 'completion-at-point-functions #'cape-elisp-block)
+  ;; (add-to-list 'completion-at-point-functions #'cape-history)
+  ;; (add-to-list 'completion-at-point-functions #'cape-keyword)
+  ;;(add-to-list 'completion-at-point-functions #'cape-tex)
+  ;;(add-to-list 'completion-at-point-functions #'cape-sgml)
+  ;;(add-to-list 'completion-at-point-functions #'cape-rfc1345)
+  ;;(add-to-list 'completion-at-point-functions #'cape-abbrev)
+  ;;(add-to-list 'completion-at-point-functions #'cape-dict)
+  ;; (add-to-list 'completion-at-point-functions #'cape-symbol)
+  ;;(add-to-list 'completion-at-point-functions #'cape-line)
+  
+  (use-package company-math :defer t)
+  (use-package company-auctex :defer t)
+  (use-package company-reftex :defer t)
+  (defun latex-capf-setup ()
+    (add-to-list 'completion-at-point-functions (cape-company-to-capf #'company-math-symbols-latex))
+    (add-to-list 'completion-at-point-functions (cape-company-to-capf #'company-math-symbols-unicode))
+    (add-to-list 'completion-at-point-functions (cape-company-to-capf #'company-auctex-macros))
+    (add-to-list 'completion-at-point-functions (cape-company-to-capf #'company-auctex-symbols))
+    (add-to-list 'completion-at-point-functions (cape-company-to-capf #'company-auctex-environments))
+    (add-to-list 'completion-at-point-functions (cape-company-to-capf #'company-reftex-labels))
+    (add-to-list 'completion-at-point-functions (cape-company-to-capf #'company-reftex-citations)))
+  (add-hook 'LaTeX-mode-hook 'latex-capf-setup))
+
 
 (use-package kind-icon
   :ensure t
@@ -698,7 +738,7 @@ Version 2018-09-10"
 		    "A-a" 'mark-whole-buffer
 		    ;;A-b/b citar
 		    "A-c" 'save-buffers-kill-emacs
-		    ;;A-C  restart-emacs
+		    "A-C" 'restart-emacs
 		    "A-d" 'dired
 		    "d"   'dirvish
 		    "A-e" 'eval-last-sexp
@@ -818,11 +858,6 @@ Version 2018-09-10"
 	    "C-h A-k" 'describe-key
 	    "C-h A-K" 'describe-keymap
 	    "C-h A-b" 'embark-bindings))
-
-;; restart emacs within emacs
-(use-package restart-emacs
-  :config
-  (global-set-key `[(alt q) (alt shift c)] 'restart-emacs))
 
 ;; smartparens setup
 (use-package smartparens
@@ -1382,6 +1417,14 @@ Counter that by dividing the factor out."
 ;; package devel tools
 (use-package package-lint
   :defer t)
+
+;; (use-package treesit-auto
+;;   :config
+;;   (global-treesit-auto-mode)
+;;   (setq treesit-auto-install 'prompt))
+;; this package has some problem causing emacs to quit whenever there is a completion option.
+;; not sure what the cuse is. Disable it for now.
+
 
 
 ;;; init.el ends here
