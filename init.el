@@ -18,10 +18,12 @@
       (eval-print-last-sexp)))
   (load bootstrap-file nil 'nomessage))
 
-(straight-use-package 'use-package)
+;; (straight-use-package 'use-package) ; use-package is built-in in emacs 29
 (straight-use-package 'general)
 (setq straight-use-package-by-default t)
 (setq straight-vc-git-default-protocol 'ssh)
+
+;; (setq debug-on-error t)
 
 ;; benchmark startup time
 ;; (use-package benchmark-init
@@ -248,8 +250,9 @@
 (global-hl-line-mode 1)
 (global-prettify-symbols-mode)
 (global-visual-line-mode)
-(pixel-scroll-precision-mode)
-(setq pixel-scroll-precision-interpolate-page t)
+;; (pixel-scroll-precision-mode)
+;; (setq pixel-scroll-precision-interpolate-page t)
+;; (setq pixel-scroll-precision-large-scroll-height 30.0)
 
 
 ;;; ========== Completion framework ==========
@@ -279,13 +282,18 @@
    consult-recent-file-other-window :preview-key nil))
 
 (use-package prescient
+  :after vertico corfu
   :config
   (use-package vertico-prescient)
+  (use-package corfu-prescient)
+  (corfu-prescient-mode 1)
   (vertico-prescient-mode 1)
   (prescient-persist-mode 1))
+  
 (use-package marginalia
   :config
   (marginalia-mode))
+
 (use-package embark
   :bind
   (("A-q <A-return>" . embark-act))
@@ -369,12 +377,19 @@
 (add-hook 'text-mode-hook 'flyspell-mode)
 (add-hook 'prog-mode-hook 'flyspell-prog-mode)
 
+
 ;; (use-package jinx
+;;
+;; can't get it to work. Freeze issue related to thread handling in the OSX port. See:
+;; https://github.com/minad/jinx/pull/91
+;;
 ;;   :defer t
 ;;   :init
 ;;   (defun my-jinx--load-dicts ()
 ;;   "Initialize broker and dicts from jinx-mod dynamic module in a thread safe manner."
 ;;   (make-thread 'jinx--load-dicts-thread "jinx--load-dicts-thread"))
+
+;;   (defvar jinx--mutex (make-mutex "jinx--mutex"))
   
 ;;   (defun jinx--load-dicts-thread ()
 ;;     "Thread runner for `jinx--load-dicts' to load the actual dictionaries."
@@ -392,10 +407,10 @@
 ;;       (modify-syntax-entry ?. "." jinx--syntax-table)))
 
 ;;   (advice-add 'jinx--load-dicts :override #'my-jinx--load-dicts)
+;;   (global-jinx-mode)
   
-;;   :hook (emacs-startup . global-jinx-mode)
-;;   :bind (("M-$" . jinx-correct)
-;;          ("C-M-$" . jinx-languages)))
+;;   :bind (("A-'" . jinx-correct)
+;;          ("M-'" . jinx-languages)))
 
 
 (use-package corfu
@@ -403,7 +418,6 @@
   :config
   (setq corfu-cycle t
 	corfu-auto t                 ;; Enable auto completion
-	corfu-separator ?\s          ;; Orderless field separator
 	corfu-quit-at-boundary nil   ;; Never quit at completion boundary
 	corfu-quit-no-match t        ;; Never quit, even if there is no match
 	corfu-preview-current t      ;; Disable current candidate preview
@@ -445,9 +459,7 @@
     (add-to-list 'completion-at-point-functions (cape-company-to-capf #'company-reftex-citations)))
   (add-hook 'LaTeX-mode-hook 'latex-capf-setup))
 
-
 (use-package kind-icon
-  :ensure t
   :after corfu
   :config
   (setq kind-icon-default-face 'corfu-default)
@@ -563,7 +575,6 @@ Version 2018-09-10"
 
 (setq scroll-preserve-screen-position t)
 ;; (setq prettify-symbols-unprettify-at-point t)
-(setq debug-on-error t)
 (setq set-mark-command-repeat-pop t)
 (setq select-enable-clipboard nil)
 (setq shift-select-mode nil)
@@ -712,7 +723,7 @@ Version 2018-09-10"
  "A-;" 'move-end-of-line
  "A-:" 'forward-paragraph
  ;;A-'  flyspell-correct
- "A-\"" 'company-complete
+ "A-\"" 'completion-at-point
  "A-\\" 'comment-line
  "A-," 'beginning-of-defun
  "A-<" 'beginning-of-buffer
@@ -729,6 +740,7 @@ Version 2018-09-10"
 (define-key key-translation-map (kbd "A-m") (kbd "C-u"))
 (define-key key-translation-map (kbd "A-/") (kbd "C-h"))
 (define-key minibuffer-local-map (kbd "A-a") 'mark-whole-buffer)
+
 
 
 ;; file and system actions (leading key A-q)
@@ -792,7 +804,6 @@ Version 2018-09-10"
 ;; (use-package ace-window
 ;;   :config (setq aw-scope 'frame)
 ;;   :bind (("A-b A-o" . ace-window)))
-
 
 
 ;;; ========== Utilities ==========
@@ -1208,8 +1219,10 @@ Counter that by dividing the factor out."
     "Set the render scale in to match different monitor before calling `latex-preview'."
     (interactive "P")
     (plist-put org-format-latex-options :scale (latex-preview-format-scale))
-    (org-latex-preview arg))
-
+    (plist-put org-format-latex-options :background 'default)
+    (funcall-interactively 'org-latex-preview arg))
+  (setq org-element-use-cache nil) ; setting it to t cause some error messages when previewing. turning it off for now. revisit after org 9.7 update (along with transparent background issues).
+  
   (setq org-preview-latex-default-process 'dvisvgm)
   (setq org-preview-latex-image-directory ".ltximg/")
   (setq org-highlight-latex-and-related '(native latex script entities))
@@ -1231,9 +1244,9 @@ Counter that by dividing the factor out."
   (use-package org-superstar
     :config
     (setq org-hide-leading-stars t)
-    (set-face-attribute 'org-level-1 nil :weight 'semi-bold :height 1.25)
-    (set-face-attribute 'org-level-2 nil :weight 'normal :height 1.15)
-    (set-face-attribute 'org-level-3 nil :weight 'normal :height 1.05)
+    (set-face-attribute 'org-level-1 nil :weight 'semi-bold :height 1.25 :box nil)
+    (set-face-attribute 'org-level-2 nil :weight 'normal :height 1.15 :box nil)
+    (set-face-attribute 'org-level-3 nil :weight 'normal :height 1.05 :box nil)
     :hook (org-mode . (lambda () (org-superstar-mode 1))))
   
   (setq org-startup-indented t)
@@ -1305,10 +1318,46 @@ Counter that by dividing the factor out."
   (setq citar-bibliography '("~/Documents/Papers/master.bib")
 	citar-library-paths '("~/Documents/Papers/"))
   (advice-add #'completing-read-multiple :override #'consult-completing-read-multiple)  ;; use consult-completing-read for enhanced interface
-  (setq citar-symbols
-	`((file ,(all-the-icons-faicon "file-o" :face 'all-the-icons-green :v-adjust -0.1) . " ")
-	  (note ,(all-the-icons-material "speaker_notes" :face 'all-the-icons-blue :v-adjust -0.3) . " ")
-	  (link ,(all-the-icons-octicon "link" :face 'all-the-icons-orange :v-adjust 0.01) . " ")))
+  (defvar citar-indicator-files-icons
+    (citar-indicator-create
+     :symbol (all-the-icons-faicon
+              "file-o"
+              :face 'all-the-icons-green
+              :v-adjust -0.1)
+     :function #'citar-has-files
+     :padding "  " ; need this because the default padding is too low for these icons
+     :tag "has:files"))
+  (defvar citar-indicator-links-icons
+    (citar-indicator-create
+     :symbol (all-the-icons-octicon
+              "link"
+              :face 'all-the-icons-orange
+              :v-adjust 0.01)
+     :function #'citar-has-links
+     :padding "  "
+     :tag "has:links"))
+  (defvar citar-indicator-notes-icons
+    (citar-indicator-create
+     :symbol (all-the-icons-material
+              "speaker_notes"
+              :face 'all-the-icons-blue
+              :v-adjust -0.3)
+     :function #'citar-has-notes
+     :padding "  "
+     :tag "has:notes"))
+  (defvar citar-indicator-cited-icons
+    (citar-indicator-create
+     :symbol (all-the-icons-faicon
+              "circle-o"
+              :face 'all-the-icon-green)
+     :function #'citar-is-cited
+     :padding "  "
+     :tag "is:cited"))
+  (setq citar-indicators
+  (list citar-indicator-files-icons
+        citar-indicator-links-icons
+        citar-indicator-notes-icons
+        citar-indicator-cited-icons))
   (setq citar-symbol-separator "  ")
   (setq citar-file-open-functions
 	`(("html" . citar-file-open-external)
