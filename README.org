@@ -28,6 +28,7 @@ I use [[https://github.com/raxod502/straight.el][straight.el]] for general packa
 Here's a list of packages I use (not inclusive).
 ** appearance
 - all-the-icons
+- nerd-icons
 - centaur-tabs
 - dashboard
 - doom-modeline
@@ -37,10 +38,8 @@ Here's a list of packages I use (not inclusive).
 - dired-hacks
 - general
 - helpful
-- hydra
 - no-littering
 - prescient
-- restart-emacs
 - undo-tree
 - which-key
   
@@ -53,7 +52,7 @@ Here's a list of packages I use (not inclusive).
 - flycheck
 - flyspell-correct
 - marginalia
-- vertico (selectrum deprecated)
+- vertico
 - smartparens
 
 ** modes/tools
@@ -62,6 +61,7 @@ Here's a list of packages I use (not inclusive).
 - cdlatex
 - citar
 - magit
+- org-roam
 - pdf-tools
 - projectile
 

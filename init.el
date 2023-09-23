@@ -41,8 +41,9 @@
 (require 'recentf)
 (add-to-list 'recentf-exclude no-littering-var-directory)
 (add-to-list 'recentf-exclude no-littering-etc-directory)
-(setq auto-save-file-name-transforms
-      `((".*" ,(no-littering-expand-var-file-name "auto-save/") t)))
+(no-littering-theme-backups)
+;; (setq auto-save-file-name-transforms
+;;       `((".*" ,(no-littering-expand-var-file-name "auto-save/") t)))
 (setq custom-file (expand-file-name "custom.el" user-emacs-directory))
 
 ;; appearance settings
@@ -57,11 +58,6 @@
 (set-face-attribute 'variable-pitch nil
 		    :family "Lucida Grande"
 		    :height 130)
-;; (set-face-attribute 'text-mode-default nil
-;;		    :family "Lucida Grande"
-;;		    :height 120)
-
-
 
 ;;; ========== Appearance ==========
 
@@ -765,6 +761,7 @@ Version 2018-09-10"
 		    ;;A-p  projectile-map
 		    "A-r" 'consult-recent-file
 		    "r"   'consult-recent-file-other-window
+		    ;;A-o org-roam prefix
 		    "A-s" 'save-buffer
 		    "A-u" 'undo-tree-visualize
 		    ;;A-y  yas-insert-snippet
@@ -1271,6 +1268,11 @@ Counter that by dividing the factor out."
   (sp-local-pair 'org-mode "$" "$")
   (sp-local-pair 'org-mode "\\[" "\\]") ;; inherit from latex mode, fix later
 
+  (use-package org-transclusion
+    :config
+    (setq org-transclusion-exclude-elements "drawer keyword")
+    (set-face-attribute 'org-transclusion-fringe nil :foreground "green" :background "green"))
+  
   :general
   (:keymaps 'org-mode-map
 	    "M-i" 'org-metaup
@@ -1292,6 +1294,7 @@ Counter that by dividing the factor out."
 	    "=" 'org-table-eval-formula
 	    "RET" 'org-ctrl-c-ret
 	    "A-t" 'org-todo
+	    "t" 'org-transclusion-mode
 	    "A-w" 'org-ctrl-c-ctrl-c
 	    "A-x" 'org-refile
 	    "A-c" 'org-copy
@@ -1310,6 +1313,52 @@ Counter that by dividing the factor out."
 	    "A-e" 'latex-backward-delete-word
 	    "^" 'org-self-insert-command
 	    "_" 'org-self-insert-command))
+
+;; roam
+(use-package org-roam
+  :config
+  (setq org-roam-directory (expand-file-name "~/org/roam"))
+  (org-roam-db-autosync-mode)
+  (setq org-roam-completion-everywhere t)
+  
+  (cl-defmethod org-roam-node-hierarchy ((node org-roam-node))
+    (let ((level (org-roam-node-level node)))
+      (concat
+       (when (> level 0) (concat (org-roam-node-file-title node) " > "))
+       (when (> level 1) (concat (string-join (org-roam-node-olp node) " > ") " > "))
+       (org-roam-node-title node))))
+  
+  (cl-defmethod org-roam-node-info ((node org-roam-node))
+    (cdr (assoc-string "INFO" (org-roam-node-properties node))))
+
+  (setq org-roam-node-display-template
+	(concat "${hierarchy:*} " "${info:*} " (propertize "${tags:10}" 'face 'org-tag)))
+
+  (setq org-roam-capture-templates
+	'(("d" "default" plain "%?"
+	   :target (file+head "%<%Y%m%d%H%M%S>.org" ":PROPERTIES:\n:INFO:   %^{info}\n:END:\n#+title: ${title}")
+	   :unnarrowed t
+	   :empty-lines-before 1)
+	  ("t" "talk" plain "\n+ Speaker: %?\n+ Title: \n+ Date: %t\n+ Event:  \n---------------------------------------------\n"
+	   :target (file+head "%<%Y%m%d%H%M%S>.org"
+			      ":PROPERTIES:\n:INFO:   %^{talk-title}\n:END:\n#+title: ${title}\n#+filetags: :talk:")
+	   :unnarrowed t
+	   :empty-lines-before 1)
+	  ("p" "paper" plain "\n+ Title: ${citar-title}\n+ Author(s): ${citar-author}\n+ Created: %t \n---------------------------------------------\n%?"
+	   :target (file+head "%<%Y%m%d%H%M%S>.org" 
+			      ":PROPERTIES:\n:INFO:   ${citar-title}\n:END:\n#+title: ${citar-citekey}\n#+filetags: :paper:")
+	   :unnarrowed t
+	   :empty-lines-before 1)))
+  
+  :general
+  ("A-q A-o A-f" 'org-roam-node-find
+   "A-q A-o A-i" 'org-roam-node-insert
+   "A-q A-o A-b" 'org-roam-buffer-toggle)
+  
+  (:keymaps 'org-capture-mode-map
+	    "A-w A-w" 'org-capture-finalize
+	    "A-w A-k" 'org-capture-kill
+	    "A-w A-r" 'org-capture-refile))
 
 
 ;; citar
@@ -1374,6 +1423,12 @@ Counter that by dividing the factor out."
   :after citar embark
   :no-require
   :config (citar-embark-mode))
+
+(use-package citar-org-roam
+  :after (citar org-roam)
+  :config
+  (setq citar-org-roam-capture-template-key "p")
+  (citar-org-roam-mode))
 
 
 ;;; ========== Major modes ==========
