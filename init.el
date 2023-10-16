@@ -695,6 +695,7 @@ Version 2018-09-10"
  "A-s" 'kill-line
  "A-S" '("backward-kill-line" . (lambda () (interactive) (kill-line 0)))
  "A-t" 'consult-imenu
+ "A-T" 'consult-outline
  "A-u" 'backward-word
  "A-U" 'backward-sexp
  "A-v" 'yank
@@ -965,7 +966,8 @@ Version 2018-09-10"
 	  (?> "\\rightarrow" "\\Rightarrow" "\\longrightarrow")))
   (setq cdlatex-math-modify-alist
 	'((?t "\\text" nil t nil nil)
-	  (?B "\\mathbb" nil t nil nil)))
+	  (?B "\\mathbb" nil t nil nil)
+	  (?F "\\mathfrak" nil t nil nil)))
 
   (defun my-cdlatex-read-char-with-help (alist start-level max-level prompt-format
 					       header-format prefix bindings)
@@ -1247,6 +1249,7 @@ Counter that by dividing the factor out."
     :hook (org-mode . (lambda () (org-superstar-mode 1))))
   
   (setq org-startup-indented t)
+  (setq org-return-follows-link t)
   (set-face-attribute 'org-ellipsis nil :foreground "grey70" :underline nil :inherit 'shadow)
   (setq org-ellipsis " ▾")  ; possible choices: ↴ ▼ ↝ » …
   
@@ -1260,11 +1263,17 @@ Counter that by dividing the factor out."
   (setq org-startup-with-inline-images nil)
   (setq org-startup-folded t)
   (setq org-image-actual-width nil)
-  
+
+  (setq org-cite-global-bibliography (list (expand-file-name "~/Documents/Papers/master.bib")))
+  (setq org-cite-export-processors '((latex . (bibtex "JHEP")) (t basic)))
+  (setq org-cite-insert-processor 'citar)
+  (setq org-cite-follow-processor 'citar)
+  (setq org-cite-activate-processor 'citar)
+  (setq org-export-with-toc nil)
+
   (add-to-list 'org-latex-packages-alist '("" "braket" t))
   (add-to-list 'org-latex-packages-alist '("" "cancel" t))
   (add-to-list 'org-latex-packages-alist '("margin=1in" "geometry" nil))
-  (setq org-latex-pdf-process (list "latexmk -f -pdf %f"))
   (sp-local-pair 'org-mode "$" "$")
   (sp-local-pair 'org-mode "\\[" "\\]") ;; inherit from latex mode, fix later
 
@@ -1284,6 +1293,7 @@ Counter that by dividing the factor out."
 	    "M-J" 'org-shiftmetaleft
 	    "M-L" 'org-shiftmetaright
 	    "<A-return>" 'org-meta-return
+	    "A-t" 'consult-org-heading
 	    )
   (:keymaps 'org-mode-map :prefix "A-w"
 	    "." 'org-time-stamp
@@ -1313,7 +1323,6 @@ Counter that by dividing the factor out."
 	    "A-e" 'latex-backward-delete-word
 	    "^" 'org-self-insert-command
 	    "_" 'org-self-insert-command))
-
 ;; roam
 (use-package org-roam
   :config
@@ -1332,20 +1341,20 @@ Counter that by dividing the factor out."
     (cdr (assoc-string "INFO" (org-roam-node-properties node))))
 
   (setq org-roam-node-display-template
-	(concat "${hierarchy:*} " "${info:*} " (propertize "${tags:10}" 'face 'org-tag)))
+	(concat "${hierarchy:30} " "${info:*} " (propertize "${tags:10}" 'face 'org-tag)))
 
   (setq org-roam-capture-templates
 	'(("d" "default" plain "%?"
-	   :target (file+head "%<%Y%m%d%H%M%S>.org" ":PROPERTIES:\n:INFO:   %^{info}\n:END:\n#+title: ${title}")
+	   :target (file+head "%<%s>.org" ":PROPERTIES:\n:INFO:   %^{info}\n:END:\n#+title: ${title}")
 	   :unnarrowed t
 	   :empty-lines-before 1)
-	  ("t" "talk" plain "\n+ Speaker: %?\n+ Title: \n+ Date: %t\n+ Event:  \n---------------------------------------------\n"
-	   :target (file+head "%<%Y%m%d%H%M%S>.org"
+	  ("t" "talk" plain "\n+ Speaker: %?\n+ Title: \n+ Date: %t\n+ Event: \n---------------------------------------------\n"
+	   :target (file+head "%<%s>.org"
 			      ":PROPERTIES:\n:INFO:   %^{talk-title}\n:END:\n#+title: ${title}\n#+filetags: :talk:")
 	   :unnarrowed t
 	   :empty-lines-before 1)
 	  ("p" "paper" plain "\n+ Title: ${citar-title}\n+ Author(s): ${citar-author}\n+ Created: %t \n---------------------------------------------\n%?"
-	   :target (file+head "%<%Y%m%d%H%M%S>.org" 
+	   :target (file+head "%<%s>.org" 
 			      ":PROPERTIES:\n:INFO:   ${citar-title}\n:END:\n#+title: ${citar-citekey}\n#+filetags: :paper:")
 	   :unnarrowed t
 	   :empty-lines-before 1)))
@@ -1425,7 +1434,7 @@ Counter that by dividing the factor out."
   :config (citar-embark-mode))
 
 (use-package citar-org-roam
-  :after (citar org-roam)
+  :after citar
   :config
   (setq citar-org-roam-capture-template-key "p")
   (citar-org-roam-mode))
