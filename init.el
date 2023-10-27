@@ -275,7 +275,8 @@
   (consult-customize
    ;; turn off preview for opening recent files
    consult-recent-file :preview-key nil
-   consult-recent-file-other-window :preview-key nil))
+   consult-recent-file-other-window :preview-key nil)
+  (define-key consult-narrow-map (vconcat consult-narrow-key "?") #'consult-narrow-help))
 
 (use-package prescient
   :after vertico corfu
@@ -420,6 +421,7 @@
 	corfu-preselect 'valid       ;; Preselect the prompt
 	corfu-on-exact-match nil     ;; Configure handling of exact matches
 	corfu-scroll-margin 5)       ;; Use scroll margin
+  (setq corfu-auto-delay 0.4)
   (setq corfu-echo-delay '(0.7 . 0.2))
   ;; (setq corfu-popupinfo-delay 0)
   :init
@@ -739,7 +741,6 @@ Version 2018-09-10"
 (define-key minibuffer-local-map (kbd "A-a") 'mark-whole-buffer)
 
 
-
 ;; file and system actions (leading key A-q)
 
 (general-define-key :prefix "A-q"
@@ -915,6 +916,8 @@ Version 2018-09-10"
   :bind (:map pdf-view-mode-map
 	      ("<wheel-left>" . image-backward-hscroll)
 	      ("<wheel-right>" . image-forward-hscroll)
+	      ("<mouse-4>" . (lambda () (interactive) (pdf-history-backward 1)))
+	      ("<mouse-5>" . (lambda () (interactive) (pdf-history-forward 1)))
 	      ("i" . pdf-view-scroll-down-or-previous-page)
 	      ("k" . pdf-view-scroll-up-or-next-page)))
 (pdf-loader-install)
@@ -966,6 +969,8 @@ Version 2018-09-10"
 	  (?> "\\rightarrow" "\\Rightarrow" "\\longrightarrow")))
   (setq cdlatex-math-modify-alist
 	'((?t "\\text" nil t nil nil)
+	  (?k "\\ket" nil t nil nil)
+	  (?K "\\bra" nil t nil nil)
 	  (?B "\\mathbb" nil t nil nil)
 	  (?F "\\mathfrak" nil t nil nil)))
 
@@ -1194,6 +1199,9 @@ Counter that by dividing the factor out."
 
 ;;; ========== org ==========
 
+(setq my-bib-file "~/Documents/Papers/master.bib"
+      my-bib-dir "~/Documents/Papers/")
+
 (use-package org
   :defer t
   :config
@@ -1264,16 +1272,14 @@ Counter that by dividing the factor out."
   (setq org-startup-folded t)
   (setq org-image-actual-width nil)
 
-  (setq org-cite-global-bibliography (list (expand-file-name "~/Documents/Papers/master.bib")))
+  (setq org-cite-global-bibliography (list (expand-file-name my-bib-file)))
   (setq org-cite-export-processors '((latex . (bibtex "JHEP")) (t basic)))
-  (setq org-cite-insert-processor 'citar)
-  (setq org-cite-follow-processor 'citar)
-  (setq org-cite-activate-processor 'citar)
   (setq org-export-with-toc nil)
 
   (add-to-list 'org-latex-packages-alist '("" "braket" t))
   (add-to-list 'org-latex-packages-alist '("" "cancel" t))
   (add-to-list 'org-latex-packages-alist '("margin=1in" "geometry" nil))
+  (setq org-format-latex-header (concat org-format-latex-header "\n\\DeclareMathOperator{\\tr}{Tr}"))
   (sp-local-pair 'org-mode "$" "$")
   (sp-local-pair 'org-mode "\\[" "\\]") ;; inherit from latex mode, fix later
 
@@ -1358,6 +1364,12 @@ Counter that by dividing the factor out."
 			      ":PROPERTIES:\n:INFO:   ${citar-title}\n:END:\n#+title: ${citar-citekey}\n#+filetags: :paper:")
 	   :unnarrowed t
 	   :empty-lines-before 1)))
+
+  (use-package consult-org-roam
+    :init
+    (setq consult-org-roam-buffer-narrow-key ?r)
+    :config
+    (consult-org-roam-mode 1))
   
   :general
   ("A-q A-o A-f" 'org-roam-node-find
@@ -1369,12 +1381,11 @@ Counter that by dividing the factor out."
 	    "A-w A-k" 'org-capture-kill
 	    "A-w A-r" 'org-capture-refile))
 
-
 ;; citar
 (use-package citar
   :config
-  (setq citar-bibliography '("~/Documents/Papers/master.bib")
-	citar-library-paths '("~/Documents/Papers/"))
+  (setq citar-bibliography my-bib-file
+	citar-library-paths (list my-bib-dir))
   (advice-add #'completing-read-multiple :override #'consult-completing-read-multiple)  ;; use consult-completing-read for enhanced interface
   (defvar citar-indicator-files-icons
     (citar-indicator-create
@@ -1416,16 +1427,25 @@ Counter that by dividing the factor out."
         citar-indicator-links-icons
         citar-indicator-notes-icons
         citar-indicator-cited-icons))
+  
   (setq citar-symbol-separator "  ")
   (setq citar-file-open-functions
 	`(("html" . citar-file-open-external)
 	  ("pdf" . (lambda (fpath) (call-process "open" nil 0 nil "-a" "Preview.app" fpath)))
 	  ("t" . find-file)))
 
+  (setq org-cite-insert-processor 'citar)
+  (setq org-cite-follow-processor 'citar)
+  (setq org-cite-activate-processor 'citar)
+
+  :hook
+  (LaTeX-mode . citar-capf-setup)
+  (org-mode . citar-capf-setup)
+  
   :bind
   ;; call with prefix to force rebuild cache everytime
-  ("A-q A-b" . (lambda () (interactive) (let ((current-prefix-arg 4)) (call-interactively 'citar-open))))
-  ("A-q b" . (lambda () (interactive) (let ((current-prefix-arg 4)) (call-interactively 'citar-insert-citation)))))
+  ("A-q A-b" . citar-open)
+  ("A-q b" . citar-insert-citation))
 
 
 (use-package citar-embark
@@ -1449,21 +1469,28 @@ Counter that by dividing the factor out."
   (set-face-attribute 'arxiv-subfield-face nil :inherit 'font-lock-variable-name-face)
   (setq arxiv-use-variable-pitch t)
   (setq arxiv-startup-with-abstract-window t)
-  (setq arxiv-default-download-folder "~/Documents/Papers/")
-  (setq arxiv-default-bibliography "~/Documents/Papers/master.bib")
+  (setq arxiv-default-download-folder my-bib-dir)
+  (setq arxiv-default-bibliography my-bib-file)
   (setq arxiv-pdf-open-function (lambda (fpath) (call-process "open" nil 0 nil "-a" "Preview.app" fpath)))
   :bind (:map arxiv-mode-map
 	      ("i" . arxiv-prev-entry)
-	      ("k" . arxiv-next-entry))
+	      ("k" . arxiv-next-entry)
+	      ("l" . arxiv-lookup-inspire))
   :hook
   ('arxiv-mode . 'centaur-tabs-local-mode)
   ('arxiv-abstract-mode . 'centaur-tabs-local-mode))
 
+(defun arxiv-lookup-inspire ()
+  "Look up the inspire record of the current arxiv entry." 
+  (interactive)
+  (let ((arxiv-id (alist-get 'id (nth arxiv-current-entry arxiv-entry-list))))    
+    (inspire-literature-search (read-string "Search on inspire-hep: " arxiv-id))))
+
 ;; inspire
 (use-package inspire :straight (:type git :host github :repo "Simon-Lin/inspire.el" :branch "master")
   :config
-  (setq inspire-default-download-folder "~/Documents/Papers/")
-  (setq inspire-master-bibliography-file "~/Documents/Papers/master.bib")
+  (setq inspire-default-download-folder my-bib-dir)
+  (setq inspire-master-bibliography-file my-bib-file)
   (setq inspire-pdf-open-function (lambda (fpath) (call-process "open" nil 0 nil "-a" "Preview.app" fpath)))
   :bind (:map inspire-mode-map
 	      ("i" . inspire-prev-entry)
@@ -1472,6 +1499,36 @@ Counter that by dividing the factor out."
   ('inspire-mode . 'centaur-tabs-local-mode)
   ('inspire-record-mode . 'centaur-tabs-local-mode)
   ('inspire-author-mode . 'centaur-tabs-local-mode))
+
+
+;; ebib
+(use-package ebib
+  :config
+  (setq ebib-preload-bib-files (list my-bib-file))
+  (setq ebib-window-vertical-split nil
+	ebib-index-window-size 30)
+  (defvar ebib-frame nil)
+  (defun ebib-newframe (orig-fun &rest args)
+    "Display ebib window in a new frame."
+    (unless (frame-live-p ebib-frame)
+      (setq ebib-frame (make-frame '((name . "*ebib*") (width . 240) (height . 80)))))
+    (select-frame  ebib-frame)
+    (apply orig-fun args))
+  (defun ebib-kill-frame ()
+    (when (frame-live-p ebib-frame)
+      (unless ebib--initialized
+	(delete-frame ebib-frame)
+	(setq ebib-frame nil))))
+  (advice-add 'ebib :around 'ebib-newframe)
+  (advice-add 'ebib-quit :after 'ebib-kill-frame)
+
+  :bind
+  (:map ebib-index-mode-map
+	("i" . ebib-prev-entry)
+	("k" . ebib-next-entry))
+  (:map ebib-entry-mode-map
+	("i" . ebib-prev-field)
+	("k" . ebib-next-field)))
 
 ;; magit
 (use-package magit
