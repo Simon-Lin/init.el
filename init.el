@@ -205,17 +205,32 @@
 			      magit-blame-mode
 			      )))
        "Emacs")
-      ((or (derived-mode-p 'prog-mode)
-	   (eq major-mode 'org-mode))
-       "Editing")
+      ((eq major-mode 'org-mode)
+       "Org")
+      ((derived-mode-p 'prog-mode)
+       "Programming")
       ((derived-mode-p 'dired-mode)
        "Dired")
-      ((memq major-mode '(helpful-mode
-			  help-mode))
+      ((memq major-mode '(helpful-mode help-mode))
        "Help")
       (t
        (centaur-tabs-get-group-name (current-buffer))))))
 
+  (defun my-tabs-buffer-tab-label (tab)
+    "Return a label for TAB.
+That is, a string used to represent it on the tab bar.
+This function is similar to original function but displays the org-roam buffers by its title."
+    (format " %s"
+	    (let ((bufname (if centaur-tabs--buffer-show-groups
+			       (centaur-tabs-tab-tabset tab)
+			     (if (org-roam-buffer-p (car tab))
+				 (with-current-buffer (car tab)
+				   (org-roam-db--file-title))
+			       (buffer-name (car tab))))))
+	      (if (> centaur-tabs-label-fixed-length 0)
+		  (centaur-tabs-truncate-string  centaur-tabs-label-fixed-length bufname)
+		bufname))))
+  
   (setq centaur-tabs-show-jump-identifier 'always)
   (set-face-attribute 'centaur-tabs-jump-identifier-selected nil
 		      :foreground nil)
@@ -233,7 +248,8 @@
    "A-8" 'centaur-tabs-select-visible-tab
    "A-9" 'centaur-tabs-select-visible-tab)
 
-  (centaur-tabs-mode t))
+  (centaur-tabs-mode t)
+  (setq centaur-tabs-tab-label-function 'my-tabs-buffer-tab-label))
 
 ;; misc appearance settings
 (setq-default cursor-type 'bar)
@@ -408,7 +424,6 @@
   
 ;;   :bind (("A-'" . jinx-correct)
 ;;          ("M-'" . jinx-languages)))
-
 
 (use-package corfu
   :straight (corfu :files (:defaults "extensions/*.el"))
@@ -746,7 +761,7 @@ Version 2018-09-10"
 (general-define-key :prefix "A-q"
 		    "TAB" 'indent-rigidly
 		    "A-a" 'mark-whole-buffer
-		    ;;A-b/b citar
+		    ;;"A-b" bib-map
 		    "A-c" 'save-buffers-kill-emacs
 		    "A-C" 'restart-emacs
 		    "A-d" 'dired
@@ -797,6 +812,18 @@ Version 2018-09-10"
 		    "A-]" 'tab-bar-switch-to-next-tab
 		    "A-[" 'tab-bar-switch-to-prev-tab
 		    "A-c" 'tab-bar-close-tab
+		    )
+
+;; literature/bibliography tools
+(general-define-key :prefix "A-q A-b"
+		    "A-b" 'citar-open
+		    "A-o" 'citar-open-note
+		    "A-f" 'citar-open-files
+		    "A-i" 'citar-insert-citation
+		    "A-r" 'arxiv-read-new
+		    "A-l" 'inspire-literature-search
+		    "A-a" 'inspire-author-search
+		    "A-e" 'ebib
 		    )
 
 ;; ace window
@@ -1079,7 +1106,6 @@ Counter that by dividing the factor out."
 	 (if (equal (frame-monitor-attribute 'name)  "Built-in Retina Display")
 	     1.5 1))))
 
-
 ;; auctex
 (use-package tex-site :straight auctex
   :defer t
@@ -1233,6 +1259,12 @@ Counter that by dividing the factor out."
   (setq org-preview-latex-default-process 'dvisvgm)
   (setq org-preview-latex-image-directory ".ltximg/")
   (setq org-highlight-latex-and-related '(native latex script entities))
+  (defun my-resize-org-latex-overlays ()
+    (cl-loop for o in (car (overlay-lists))
+	     if (eq (overlay-get o 'org-overlay-type) 'org-latex-overlay)
+	     do (plist-put (cdr (overlay-get o 'display))
+			   :scale (expt text-scale-mode-step
+					text-scale-mode-amount))))
 
   ;; function to insert latex environment in org-mode
   (setq my-org-environment-default "align*")
@@ -1280,6 +1312,14 @@ Counter that by dividing the factor out."
   (add-to-list 'org-latex-packages-alist '("" "cancel" t))
   (add-to-list 'org-latex-packages-alist '("margin=1in" "geometry" nil))
   (setq org-format-latex-header (concat org-format-latex-header "\n\\DeclareMathOperator{\\tr}{Tr}"))
+  (with-eval-after-load 'ox
+    (setf (nth 0 org-latex-classes)
+	  '("article" "\\documentclass[11pt]{article}\n[DEFAULT-PACKAGES]\n[PACKAGES]\n\\DeclareMathOperator{\\tr}{Tr}\n[EXTRA]"
+	    ("\\section{%s}" . "\\section*{%s}")
+	    ("\\subsection{%s}" . "\\subsection*{%s}")
+	    ("\\subsubsection{%s}" . "\\subsubsection*{%s}")
+	    ("\\paragraph{%s}" . "\\paragraph*{%s}")
+	    ("\\subparagraph{%s}" . "\\subparagraph*{%s}"))))
   (sp-local-pair 'org-mode "$" "$")
   (sp-local-pair 'org-mode "\\[" "\\]") ;; inherit from latex mode, fix later
 
@@ -1287,6 +1327,9 @@ Counter that by dividing the factor out."
     :config
     (setq org-transclusion-exclude-elements "drawer keyword")
     (set-face-attribute 'org-transclusion-fringe nil :foreground "green" :background "green"))
+  
+  :hook
+  (org-mode . (lambda () (add-hook 'text-scale-mode-hook #'my-resize-org-latex-overlays nil t)))
   
   :general
   (:keymaps 'org-mode-map
@@ -1373,6 +1416,7 @@ Counter that by dividing the factor out."
   
   :general
   ("A-q A-o A-f" 'org-roam-node-find
+   "A-q A-o A-o" 'org-roam-node-find
    "A-q A-o A-i" 'org-roam-node-insert
    "A-q A-o A-b" 'org-roam-buffer-toggle)
   
@@ -1440,12 +1484,7 @@ Counter that by dividing the factor out."
 
   :hook
   (LaTeX-mode . citar-capf-setup)
-  (org-mode . citar-capf-setup)
-  
-  :bind
-  ;; call with prefix to force rebuild cache everytime
-  ("A-q A-b" . citar-open)
-  ("A-q b" . citar-insert-citation))
+  (org-mode . citar-capf-setup))
 
 
 (use-package citar-embark
@@ -1500,7 +1539,6 @@ Counter that by dividing the factor out."
   ('inspire-record-mode . 'centaur-tabs-local-mode)
   ('inspire-author-mode . 'centaur-tabs-local-mode))
 
-
 ;; ebib
 (use-package ebib
   :config
@@ -1529,6 +1567,8 @@ Counter that by dividing the factor out."
   (:map ebib-entry-mode-map
 	("i" . ebib-prev-field)
 	("k" . ebib-next-field)))
+
+
 
 ;; magit
 (use-package magit
