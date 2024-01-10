@@ -1101,7 +1101,7 @@ without the pair given, prompt the user for inseted pair."
     "Set the correct scale for latex fragments
 Images somehow are rendered 1.5 times bigger on retina screens.
 Counter that by dividing the factor out."
-    (let ((true-scale 1.25))
+    (let ((true-scale 1.12))
       (/ true-scale
 	 (if (equal (frame-monitor-attribute 'name)  "Built-in Retina Display")
 	     1.5 1))))
@@ -1311,7 +1311,7 @@ Counter that by dividing the factor out."
   (add-to-list 'org-latex-packages-alist '("" "braket" t))
   (add-to-list 'org-latex-packages-alist '("" "cancel" t))
   (add-to-list 'org-latex-packages-alist '("margin=1in" "geometry" nil))
-  (setq org-format-latex-header (concat org-format-latex-header "\n\\DeclareMathOperator{\\tr}{Tr}"))
+  (setq org-format-latex-header (concat org-format-latex-header "\n\\usepackage{sansmathfonts}\n\\DeclareMathOperator{\\tr}{Tr}"))
   (with-eval-after-load 'ox
     (setf (nth 0 org-latex-classes)
 	  '("article" "\\documentclass[11pt]{article}\n[DEFAULT-PACKAGES]\n[PACKAGES]\n\\DeclareMathOperator{\\tr}{Tr}\n[EXTRA]"
