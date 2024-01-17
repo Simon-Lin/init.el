@@ -1099,12 +1099,11 @@ without the pair given, prompt the user for inseted pair."
 
 (defun latex-preview-format-scale ()
     "Set the correct scale for latex fragments
-Images somehow are rendered 1.5 times bigger on retina screens.
+Images somehow are rendered p times bigger on retina screens.
+(I think p = 2*truescale - 1 although I don't know what's behind this)
 Counter that by dividing the factor out."
-    (let ((true-scale 1.12))
-      (/ true-scale
-	 (if (equal (frame-monitor-attribute 'name)  "Built-in Retina Display")
-	     1.5 1))))
+    (let ((true-scale 1.15))
+      (+ (* (- true-scale 1) (frame-scale-factor)) 1)))
 
 ;; auctex
 (use-package tex-site :straight auctex
@@ -1259,12 +1258,34 @@ Counter that by dividing the factor out."
   (setq org-preview-latex-default-process 'dvisvgm)
   (setq org-preview-latex-image-directory ".ltximg/")
   (setq org-highlight-latex-and-related '(native latex script entities))
+
+  ;; dynamic latex fragment rescaling
   (defun my-resize-org-latex-overlays ()
     (cl-loop for o in (car (overlay-lists))
 	     if (eq (overlay-get o 'org-overlay-type) 'org-latex-overlay)
 	     do (plist-put (cdr (overlay-get o 'display))
 			   :scale (expt text-scale-mode-step
 					text-scale-mode-amount))))
+  (defun my-org--make-preview-overlay (beg end image &optional imagetype)
+  "Build an overlay between BEG and END using IMAGE file.
+Argument IMAGETYPE is the extension of the displayed image,
+as a string.  It defaults to \"png\"."
+  (let ((ov (make-overlay beg end))
+	(imagetype (or (intern imagetype) 'png)))
+    (overlay-put ov 'org-overlay-type 'org-latex-overlay)
+    (overlay-put ov 'evaporate t)
+    (overlay-put ov
+		 'modification-hooks
+		 (list (lambda (o _flag _beg _end &optional _l)
+			 (delete-overlay o))))
+    (overlay-put ov
+		 'display
+		 (list 'image
+		       :type imagetype
+		       :file image
+		       :ascent 'center
+		       :scale (expt text-scale-mode-step text-scale-mode-amount)))))
+  (advice-add #'org--make-preview-overlay :override #'my-org--make-preview-overlay)
 
   ;; function to insert latex environment in org-mode
   (setq my-org-environment-default "align*")
