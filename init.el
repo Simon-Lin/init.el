@@ -1098,12 +1098,15 @@ without the pair given, prompt the user for inseted pair."
   (find-file-other-window "~/.emacs.d/symbols.pdf"))
 
 (defun latex-preview-format-scale ()
-    "Set the correct scale for latex fragments
+  "Set the correct scale for latex fragments.
 Images somehow are rendered p times bigger on retina screens.
-(I think p = 2*truescale - 1 although I don't know what's behind this)
+I think $p = 2(true-scale - 1) + 1$ although I don't know what's behind this.
 Counter that by dividing the factor out."
-    (let ((true-scale 1.15))
-      (+ (* (- true-scale 1) (frame-scale-factor)) 1)))
+  (let* ((true-scale 1.15)
+	 (p-scale (+ (* (frame-scale-factor) (- true-scale 1)) 1)))
+    (if (equal (frame-monitor-attribute 'name)  "Built-in Retina Display")
+	(/ true-scale p-scale)
+      p-scale)))
 
 ;; auctex
 (use-package tex-site :straight auctex
@@ -1431,7 +1434,8 @@ as a string.  It defaults to \"png\"."
 
   (use-package consult-org-roam
     :init
-    (setq consult-org-roam-buffer-narrow-key ?r)
+    (setq consult-org-roam-buffer-narrow-key ?r
+	  consult-org-roam-buffer-after-buffers t)
     :config
     (consult-org-roam-mode 1))
   
