@@ -315,7 +315,7 @@ This function is similar to original function but displays the org-roam buffers 
   :init
   ;; Optionally replace the key help with a completing-read interface
   (setq prefix-help-command #'embark-prefix-help-command)
-
+  
   :config
   ;; Hide the mode line of the Embark live/completions buffers
   (add-to-list 'display-buffer-alist
@@ -362,6 +362,28 @@ This function is similar to original function but displays the org-roam buffers 
 ;;               :around #'embark-hide-which-key-indicator)
   )
 
+
+;; spellcheck and autocomplete
+
+;; use applespell engine, need enchant installed on macOS
+;; (setq ispell-program-name "enchant-2")
+;; (use-package popup
+;;   :defer t
+;;   :bind (:map popup-menu-keymap
+;; 	      ("A-i" . popup-previous)
+;; 	      ("A-k" . popup-next)
+;; 	      ("A-j" . popup-open)
+;; 	      ("A-l" . popup-close)))
+
+;; (use-package flyspell-correct
+;;   :after flyspell
+;;   :bind (:map flyspell-mode-map ("A-'" . flyspell-correct-wrapper)))
+
+;; (use-package flyspell-correct-popup
+;;   :after flyspell-correct)
+;; (add-hook 'text-mode-hook 'flyspell-mode)
+;; (add-hook 'prog-mode-hook 'flyspell-prog-mode)
+
 (use-package embark-consult
   :after (embark consult)
   :demand t ; only necessary if you have the hook below
@@ -370,60 +392,11 @@ This function is similar to original function but displays the org-roam buffers 
   :hook
   (embark-collect-mode . consult-preview-at-point-mode))
 
-;; spellcheck and autocomplete
-;; use applespell engine, need enchant installed on macOS
-(setq ispell-program-name "enchant-2")
-(use-package popup
+(use-package jinx
   :defer t
-  :bind (:map popup-menu-keymap
-	      ("A-i" . popup-previous)
-	      ("A-k" . popup-next)
-	      ("A-j" . popup-open)
-	      ("A-l" . popup-close)))
-
-(use-package flyspell-correct
-  :after flyspell
-  :bind (:map flyspell-mode-map ("A-'" . flyspell-correct-wrapper)))
-
-(use-package flyspell-correct-popup
-  :after flyspell-correct)
-(add-hook 'text-mode-hook 'flyspell-mode)
-(add-hook 'prog-mode-hook 'flyspell-prog-mode)
-
-
-;; (use-package jinx
-;;
-;; can't get it to work. Freeze issue related to thread handling in the OSX port. See:
-;; https://github.com/minad/jinx/pull/91
-;;
-;;   :defer t
-;;   :init
-;;   (defun my-jinx--load-dicts ()
-;;   "Initialize broker and dicts from jinx-mod dynamic module in a thread safe manner."
-;;   (make-thread 'jinx--load-dicts-thread "jinx--load-dicts-thread"))
-
-;;   (defvar jinx--mutex (make-mutex "jinx--mutex"))
-  
-;;   (defun jinx--load-dicts-thread ()
-;;     "Thread runner for `jinx--load-dicts' to load the actual dictionaries."
-;;     (with-mutex jinx--mutex
-;;       (setq jinx--dicts (delq nil (mapcar #'jinx--mod-dict
-;;                                           (split-string jinx-languages)))
-;;             jinx--syntax-table (make-syntax-table jinx--base-syntax-table))
-;;       (unless jinx--dicts
-;; 	(message "Jinx: No dictionaries available for %S" jinx-languages))
-;;       (dolist (dict jinx--dicts)
-;; 	(cl-loop for c across (jinx--mod-wordchars dict) do
-;; 		 (modify-syntax-entry c "w" jinx--syntax-table)))
-;;       (modify-syntax-entry ?' "w" jinx--syntax-table)
-;;       (modify-syntax-entry ?’ "w" jinx--syntax-table)
-;;       (modify-syntax-entry ?. "." jinx--syntax-table)))
-
-;;   (advice-add 'jinx--load-dicts :override #'my-jinx--load-dicts)
-;;   (global-jinx-mode)
-  
-;;   :bind (("A-'" . jinx-correct)
-;;          ("M-'" . jinx-languages)))
+  :hook (emacs-startup . global-jinx-mode)
+  :bind (("A-'" . jinx-correct)
+         ("M-'" . jinx-languages)))
 
 (use-package corfu
   :straight (corfu :files (:defaults "extensions/*.el"))
@@ -993,7 +966,9 @@ Version 2018-09-10"
 	  (?\} "\\right\}")
 	  (?. "\\cdot" "\\cdots")
 	  (?< "\\leftarrow" "\\Leftarrow" "\\longleftarrow")
-	  (?> "\\rightarrow" "\\Rightarrow" "\\longrightarrow")))
+	  (?> "\\rightarrow" "\\Rightarrow" "\\longrightarrow")
+	  (?- "\\leftrightarrow" "\\Leftrightarrow" "\\longleftrightarrow")
+	  (?= "\\equiv" "\\doteq")))
   (setq cdlatex-math-modify-alist
 	'((?t "\\text" nil t nil nil)
 	  (?k "\\ket" nil t nil nil)
@@ -1303,6 +1278,18 @@ as a string.  It defaults to \"png\"."
       (insert "\\end{" env "}")
       (previous-line)))
 
+  (defun my-org-maybe-find-roam-files ()
+    "Call `find-file' with the org-roam-buffer prefix inserted if in a roam buffer.
+Otherwise call a regular 'find-file'."
+    (interactive)
+    (if (org-roam-buffer-p)
+	(let* ((file-name (file-name-base (buffer-file-name)))
+	       (selection (read-file-name "Find file: " nil nil nil file-name)))
+	  (if (equal (file-name-extension selection) "pdf")
+	      (call-process "open" nil 0 nil (expand-file-name selection))
+	    (find-file selection)))
+      (call-interactively 'find-file)))
+
   ;; header and bullet settings
   (use-package org-superstar
     :config
@@ -1334,6 +1321,7 @@ as a string.  It defaults to \"png\"."
 
   (add-to-list 'org-latex-packages-alist '("" "braket" t))
   (add-to-list 'org-latex-packages-alist '("" "cancel" t))
+  (add-to-list 'org-latex-packages-alist '("" "bbold" t))
   (add-to-list 'org-latex-packages-alist '("margin=1in" "geometry" nil))
   (setq org-format-latex-header (concat org-format-latex-header "\n\\usepackage{sansmathfonts}\n\\DeclareMathOperator{\\tr}{Tr}"))
   (with-eval-after-load 'ox
@@ -1367,6 +1355,7 @@ as a string.  It defaults to \"png\"."
 	    "M-L" 'org-shiftmetaright
 	    "<A-return>" 'org-meta-return
 	    "A-t" 'consult-org-heading
+	    "A-q A-f" 'my-org-maybe-find-roam-files
 	    )
   (:keymaps 'org-mode-map :prefix "A-w"
 	    "." 'org-time-stamp
@@ -1437,13 +1426,13 @@ as a string.  It defaults to \"png\"."
     (setq consult-org-roam-buffer-narrow-key ?r
 	  consult-org-roam-buffer-after-buffers t)
     :config
-    (consult-org-roam-mode 1))
+    (consult-org-roam-mode 1)) 
   
   :general
   ("A-q A-o A-f" 'org-roam-node-find
    "A-q A-o A-o" 'org-roam-node-find
    "A-q A-o A-i" 'org-roam-node-insert
-   "A-q A-o A-b" 'org-roam-buffer-toggle)
+   "A-q A-o A-b" 'org-roam-buffer-toggle) 
   
   (:keymaps 'org-capture-mode-map
 	    "A-w A-w" 'org-capture-finalize
@@ -1453,8 +1442,8 @@ as a string.  It defaults to \"png\"."
 ;; citar
 (use-package citar
   :config
-  (setq citar-bibliography my-bib-file
-	citar-library-paths (list my-bib-dir))
+  (setq citar-bibliography (list my-bib-file "~/Documents/Books/books.bib")
+	citar-library-paths (list my-bib-dir "~/Documents/Books/"))
   (advice-add #'completing-read-multiple :override #'consult-completing-read-multiple)  ;; use consult-completing-read for enhanced interface
   (defvar citar-indicator-files-icons
     (citar-indicator-create
@@ -1593,7 +1582,8 @@ as a string.  It defaults to \"png\"."
 	("i" . ebib-prev-field)
 	("k" . ebib-next-field)))
 
-
+;; json
+(use-package json-mode)
 
 ;; magit
 (use-package magit
