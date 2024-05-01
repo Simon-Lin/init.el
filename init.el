@@ -972,6 +972,7 @@ Version 2018-09-10"
   (setq cdlatex-math-modify-alist
 	'((?t "\\text" nil t nil nil)
 	  (?k "\\ket" nil t nil nil)
+	  (?s "\\mathscr" nil t nil nil)
 	  (?K "\\bra" nil t nil nil)
 	  (?B "\\mathbb" nil t nil nil)
 	  (?F "\\mathfrak" nil t nil nil)))
@@ -1322,6 +1323,7 @@ Otherwise call a regular 'find-file'."
   (add-to-list 'org-latex-packages-alist '("" "braket" t))
   (add-to-list 'org-latex-packages-alist '("" "cancel" t))
   (add-to-list 'org-latex-packages-alist '("" "bbold" t))
+  (add-to-list 'org-latex-packages-alist '("" "mathrsfs" t))
   (add-to-list 'org-latex-packages-alist '("margin=1in" "geometry" nil))
   (setq org-format-latex-header (concat org-format-latex-header "\n\\usepackage{sansmathfonts}\n\\DeclareMathOperator{\\tr}{Tr}"))
   (with-eval-after-load 'ox
