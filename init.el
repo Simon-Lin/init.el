@@ -223,7 +223,7 @@ This function is similar to original function but displays the org-roam buffers 
     (format " %s"
 	    (let ((bufname (if centaur-tabs--buffer-show-groups
 			       (centaur-tabs-tab-tabset tab)
-			     (if (org-roam-buffer-p (car tab))
+			     (if (and (functionp 'org-roam-buffer-p) (org-roam-buffer-p (car tab)))
 				 (with-current-buffer (car tab)
 				   (org-roam-db--file-title))
 			       (buffer-name (car tab))))))
@@ -409,7 +409,7 @@ This function is similar to original function but displays the org-roam buffers 
 	corfu-preselect 'valid       ;; Preselect the prompt
 	corfu-on-exact-match nil     ;; Configure handling of exact matches
 	corfu-scroll-margin 5)       ;; Use scroll margin
-  (setq corfu-auto-delay 0.4)
+  (setq corfu-auto-delay 0.5)
   (setq corfu-echo-delay '(0.7 . 0.2))
   ;; (setq corfu-popupinfo-delay 0)
   :init
@@ -775,8 +775,8 @@ Version 2018-09-10"
 		    ">" 'enlarge-window-horizontally
 		    "<" 'shrink-window-horizontally
 		    "=" 'balance-windows
-		    "<A-return>" 'toggle-frame-maximized
-		    "<A-S-return>" 'toggle-frame-fullscreen
+		    "<A-S-return>" 'toggle-frame-maximized
+		    "<A-return>" 'toggle-frame-fullscreen
 		    "A-a" 'make-frame-command
 		    "A-f" 'other-frame
 		    "A-d" 'delete-frame
@@ -919,7 +919,9 @@ Version 2018-09-10"
 	      ("<mouse-4>" . (lambda () (interactive) (pdf-history-backward 1)))
 	      ("<mouse-5>" . (lambda () (interactive) (pdf-history-forward 1)))
 	      ("i" . pdf-view-scroll-down-or-previous-page)
-	      ("k" . pdf-view-scroll-up-or-next-page)))
+	      ("k" . pdf-view-scroll-up-or-next-page)
+	      ("[" . pdf-history-backward)
+	      ("]" . pdf-history-forward)))
 (pdf-loader-install)
 
 ;; snippets
@@ -1316,7 +1318,7 @@ Otherwise call a regular 'find-file'."
   (setq org-startup-folded t)
   (setq org-image-actual-width nil)
 
-  (setq org-cite-global-bibliography (list (expand-file-name my-bib-file)))
+  (setq org-cite-global-bibliography (mapcar (lambda (x) (expand-file-name x)) (list my-bib-file "~/Documents/Books/books.bib")))
   (setq org-cite-export-processors '((latex . (bibtex "JHEP")) (t basic)))
   (setq org-export-with-toc nil)
 
