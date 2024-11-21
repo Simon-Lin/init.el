@@ -22,6 +22,6 @@
 (set-language-environment "UTF-8")
 (setq default-input-method nil)
 (setq frame-inhibit-implied-resize t)
-;; need to set the frame property here so dashboard knows about maximzed frame width
+;; need to set the frame property here so dashboard knows about maximized frame width
 (add-to-list 'initial-frame-alist '(fullscreen . fullboth))
 (add-to-list 'default-frame-alist '(alpha-background . 30))

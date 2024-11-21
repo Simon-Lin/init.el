@@ -23,6 +23,22 @@
 (setq straight-use-package-by-default t)
 (setq straight-vc-git-default-protocol 'ssh)
 
+;; (defun straight-package-version (package)
+;;   (interactive
+;;    (list
+;;     (straight--select-package "Package" #'straight--installed-p)))
+;;   (let ((recipe (gethash package straight--recipe-cache))
+;;         version)
+;;     (straight--with-plist recipe
+;;         (local-repo type)
+;;       (when (and (eq type 'git) local-repo)
+;;         (let ((default-directory (straight--repos-dir local-repo)))
+;;           (setq version (or (magit-git-string "describe" "--tags" "--dirty")
+;;                             (magit-rev-parse "--short" "HEAD")))
+;;           (message "%s %s" (upcase-initials package) version)
+;;           version)))))
+
+
 ;; (setq debug-on-error t)
 
 ;; benchmark startup time
@@ -102,11 +118,14 @@
   :hook
   (after-init . doom-modeline-mode)
 
-  :config
-  (set-face-attribute 'mode-line nil :family "Lucida Grande" :box nil :height 130)
-  (set-face-attribute 'mode-line-inactive nil :family "Lucida Grande" :box nil :height 130)
+  :init
+  (if (facep 'mode-line-active)
+      (set-face-attribute 'mode-line-active nil :family "Lucida Grande" :height 130) ; For 29+
+    (set-face-attribute 'mode-line nil :family "Lucida Grande" :height 130))
+  (set-face-attribute 'mode-line-inactive nil :family "Lucida Grande" :height 130)
 
   (setq doom-modeline-support-imenu t)
+  (setq inhibit-compacting-font-caches t)
   (setq doom-modeline-height 30)
   (setq doom-modeline-bar-width 10)
   (setq doom-modeline-hud t)
@@ -118,56 +137,53 @@
   (setq doom-modeline-major-mode-color-icon t)
   (setq doom-modeline-buffer-state-icon t)
   (setq doom-modeline-buffer-modification-icon t)
+  (setq doom-modeline-lsp-icon t)
   (setq doom-modeline-time-icon t)
+  (setq doom-modeline-time-live-icon t)
+  (setq doom-modeline-time-analogue-clock t)
+  (setq doom-modeline-time-clock-size 0.7)
   (setq doom-modeline-unicode-fallback t)
   (setq doom-modeline-buffer-name t)
   (setq doom-modeline-highlight-modified-buffer-name t)
+  (setq doom-modeline-column-zero-based t)
+  (setq doom-modeline-percent-position '(-3 "%p"))
+  (setq doom-modeline-position-line-format '(" L%l"))
+  (setq doom-modeline-position-column-format '("C%c"))
+  (setq doom-modeline-position-column-line-format '("%l:%c"))
   (setq doom-modeline-minor-modes nil)
   (setq doom-modeline-enable-word-count nil)
   (setq doom-modeline-continuous-word-count-modes '(markdown-mode gfm-mode org-mode))
   (setq doom-modeline-buffer-encoding t)
   (setq doom-modeline-indent-info nil)
-  (setq doom-modeline-checker-simple-format t)
+  (setq doom-modeline-total-line-number t)
+  (setq doom-modeline-vcs-icon t)
+  (setq doom-modeline-vcs-max-length 15)
+  (setq doom-modeline-vcs-display-function #'doom-modeline-vcs-name)
+  (setq doom-modeline-check-icon t)
+  (setq doom-modeline-check-simple-format nil)
   (setq doom-modeline-number-limit 99)
-  (setq doom-modeline-vcs-max-length 12)
   (setq doom-modeline-workspace-name t)
   (setq doom-modeline-persp-name t)
   (setq doom-modeline-display-default-persp-name nil)
   (setq doom-modeline-persp-icon t)
-  (setq doom-modeline-lsp t)
+  (setq doom-modeline-lsp nil)
   (setq doom-modeline-github nil)
-  (setq doom-modeline-github-interval (* 30 60))
   (setq doom-modeline-modal nil)
-  (setq doom-modeline-modal-icon nil)
   (setq doom-modeline-mu4e nil)
   (setq doom-modeline-gnus nil)
-  (setq doom-modeline-gnus-timer 2)
-  (setq doom-modeline-gnus-excluded-groups '("dummy.group"))
   (setq doom-modeline-irc nil)
-  (setq doom-modeline-irc-stylize 'identity)
   (setq doom-modeline-battery t)
   (setq doom-modeline-time t)
   (setq doom-modeline-display-misc-in-all-mode-lines t)
+  (setq doom-modeline-buffer-file-name-function #'identity)
+  (setq doom-modeline-buffer-file-truename-function #'identity)
   (setq doom-modeline-env-version t)
-  (setq doom-modeline-env-enable-python t)
-  (setq doom-modeline-env-enable-ruby t)
-  (setq doom-modeline-env-enable-perl t)
-  (setq doom-modeline-env-enable-go t)
-  (setq doom-modeline-env-enable-elixir t)
-  (setq doom-modeline-env-enable-rust t)
-  (setq doom-modeline-env-python-executable "python") ; or `python-shell-interpreter'
-  (setq doom-modeline-env-ruby-executable "ruby")
-  (setq doom-modeline-env-perl-executable "perl")
-  (setq doom-modeline-env-go-executable "go")
-  (setq doom-modeline-env-elixir-executable "iex")
-  (setq doom-modeline-env-rust-executable "rustc")
   (setq doom-modeline-env-load-string "...")
-  (setq doom-modeline-before-update-env-hook nil)
-  (setq doom-modeline-after-update-env-hook nil)
   (setq display-time-default-load-average nil)
-  (setq display-time-format "%a %H:%M")
-  (display-time-mode t)
-  (display-battery-mode t))
+  (setq display-time-format " %a %H:%M ")
+  (setq mode-line-right-align-edge 'right-fringe)
+  (display-time-mode nil)
+  (display-battery-mode nil))
 
 (use-package procress :straight (:host github :repo "haji-ali/procress")
   :after (auctex)
@@ -559,6 +575,29 @@ Version 2018-09-10"
   :config
   (which-key-mode))
 
+(use-package popper
+  :bind (("A-b A-p"   . popper-toggle)
+	 ("A-p"       . recenter-or-popper-cycle)
+         ("A-b A-P"   . popper-toggle-type))
+  :init
+  (setq popper-reference-buffers
+        '("\\*Messages\\*"
+          "Output\\*$"
+          "\\*Async Shell Command\\*"
+	  "\\*Warnings\\*"
+;          help-mode
+          compilation-mode))
+  (defun recenter-or-popper-cycle ()
+    "Cycle through the popper via repeated press of A-b A-p A-p..."
+    (interactive)
+    (if (eq last-command 'popper-toggle)
+	(progn
+	  (popper-cycle)
+	  (setq this-command 'popper-toggle))
+      (recenter-top-bottom)))
+  (popper-mode +1)
+  (popper-echo-mode +1))
+
 (setq scroll-preserve-screen-position t)
 ;; (setq prettify-symbols-unprettify-at-point t)
 (setq set-mark-command-repeat-pop t)
@@ -780,6 +819,8 @@ Version 2018-09-10"
 		    "A-a" 'make-frame-command
 		    "A-f" 'other-frame
 		    "A-d" 'delete-frame
+		    ;;A-p  popper-toggle/cycle
+		    ;;A-P  popper-toggle-type
 		    "A-q" 'delete-other-frames
 		    "A-t" 'tab-bar-new-tab
 		    "A-]" 'tab-bar-switch-to-next-tab
@@ -966,18 +1007,18 @@ Version 2018-09-10"
 	  (?\] "\\right]")
 	  (?\{ "\\left\\\{?\\right\\\}")
 	  (?\} "\\right\}")
-	  (?. "\\cdot" "\\cdots")
+	  (?. "\\cdot" "\\cdots")	  
 	  (?< "\\leftarrow" "\\Leftarrow" "\\longleftarrow")
 	  (?> "\\rightarrow" "\\Rightarrow" "\\longrightarrow")
 	  (?- "\\leftrightarrow" "\\Leftrightarrow" "\\longleftrightarrow")
 	  (?= "\\equiv" "\\doteq")))
   (setq cdlatex-math-modify-alist
 	'((?t "\\text" nil t nil nil)
-	  (?k "\\ket" nil t nil nil)
 	  (?s "\\mathscr" nil t nil nil)
-	  (?K "\\bra" nil t nil nil)
 	  (?B "\\mathbb" nil t nil nil)
-	  (?F "\\mathfrak" nil t nil nil)))
+	  (?F "\\mathfrak" nil t nil nil)
+	  (?> "\\ket" nil t nil nil)
+	  (?< "\\bra" nil t nil nil)))
 
   (defun my-cdlatex-read-char-with-help (alist start-level max-level prompt-format
 					       header-format prefix bindings)
@@ -1080,7 +1121,7 @@ without the pair given, prompt the user for inseted pair."
 Images somehow are rendered p times bigger on retina screens.
 I think $p = 2(true-scale - 1) + 1$ although I don't know what's behind this.
 Counter that by dividing the factor out."
-  (let* ((true-scale 1.15)
+  (let* ((true-scale 1.4) ; original 1.15, updated to match rsvg scaling
 	 (p-scale (+ (* (frame-scale-factor) (- true-scale 1)) 1)))
     (if (equal (frame-monitor-attribute 'name)  "Built-in Retina Display")
 	(/ true-scale p-scale)
@@ -1343,6 +1384,8 @@ Otherwise call a regular 'find-file'."
     :config
     (setq org-transclusion-exclude-elements "drawer keyword")
     (set-face-attribute 'org-transclusion-fringe nil :foreground "green" :background "green"))
+
+  (use-package org-drill) ; flashcards
   
   :hook
   (org-mode . (lambda () (add-hook 'text-scale-mode-hook #'my-resize-org-latex-overlays nil t)))
@@ -1392,9 +1435,10 @@ Otherwise call a regular 'find-file'."
 ;; roam
 (use-package org-roam
   :config
-  (setq org-roam-directory (expand-file-name "~/org/roam"))
+  (setq org-roam-directory (expand-file-name "~/org/roam")) 
   (org-roam-db-autosync-mode)
-  (setq org-roam-completion-everywhere t)
+  (require 'org-roam-export)
+  ;; (setq org-roam-completion-everywhere t)
   
   (cl-defmethod org-roam-node-hierarchy ((node org-roam-node))
     (let ((level (org-roam-node-level node)))
@@ -1404,7 +1448,10 @@ Otherwise call a regular 'find-file'."
        (org-roam-node-title node))))
   
   (cl-defmethod org-roam-node-info ((node org-roam-node))
-    (cdr (assoc-string "INFO" (org-roam-node-properties node))))
+    (cdr (assoc-string "INFO" (org-roam-node-properties node))))  
+
+  (setq org-roam-db-node-include-function  ; exclude org-drill items
+	(lambda () (not (member "drill" (org-get-tags)))))
 
   (setq org-roam-node-display-template
 	(concat "${hierarchy:30} " "${info:*} " (propertize "${tags:10}" 'face 'org-tag)))
@@ -1422,6 +1469,10 @@ Otherwise call a regular 'find-file'."
 	  ("p" "paper" plain "\n+ Title: ${citar-title}\n+ Author(s): ${citar-author}\n+ Created: %t \n---------------------------------------------\n%?"
 	   :target (file+head "%<%s>.org" 
 			      ":PROPERTIES:\n:INFO:   ${citar-title}\n:END:\n#+title: ${citar-citekey}\n#+filetags: :paper:")
+	   :unnarrowed t
+	   :empty-lines-before 1)
+	  ("a" "arabic" plain "%?"
+	   :target (file+head "%<%s>.org" ":PROPERTIES:\n:INFO:   %^{info}\n:END:\n#+title: ${title}\n#+filetags: :arabic:")
 	   :unnarrowed t
 	   :empty-lines-before 1)))
 
@@ -1646,6 +1697,11 @@ Otherwise call a regular 'find-file'."
 ;; package devel tools
 (use-package package-lint
   :defer t)
+
+;; (use-package explain-pause-mode
+;;   :straight (explain-pause-mode :type git :host github :repo "lastquestion/explain-pause-mode")
+;;   :config
+;;   (explain-pause-mode))
 
 ;; (use-package treesit-auto
 ;;   :config
