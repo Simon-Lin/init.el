@@ -585,16 +585,18 @@ Version 2018-09-10"
           "Output\\*$"
           "\\*Async Shell Command\\*"
 	  "\\*Warnings\\*"
-;          help-mode
+;;          help-mode
           compilation-mode))
+  
   (defun recenter-or-popper-cycle ()
-    "Cycle through the popper via repeated press of A-b A-p A-p..."
+    "Cycle through the popper buffer via repeated press of A-b A-p A-p..."
     (interactive)
     (if (eq last-command 'popper-toggle)
 	(progn
-	  (popper-cycle)
+	  (call-interactively 'popper-cycle)
 	  (setq this-command 'popper-toggle))
       (recenter-top-bottom)))
+  
   (popper-mode +1)
   (popper-echo-mode +1))
 
@@ -608,6 +610,7 @@ Version 2018-09-10"
 (tooltip-mode -1)
 (setq tab-bar-show nil)
 (setq use-short-answers t) ; new in Emacs 28
+(setq byte-compile-warnings '(not docstrings))
 
 
 (defun new-empty-buffer ()
@@ -717,7 +720,7 @@ Version 2018-09-10"
  ;;A-n  C-g
  "A-o" 'forward-word-or-other-window
  "A-O" 'forward-sexp
- "A-p" 'recenter-top-bottom
+ ;;A-p  recenter-top-bottom/popper-cycle
  ;;A-q  file/system prefix
  "A-r" 'kill-word
  "A-R" 'kill-sexp
@@ -792,6 +795,7 @@ Version 2018-09-10"
 		    "r"   'consult-recent-file-other-window
 		    ;;A-o org-roam prefix
 		    "A-s" 'save-buffer
+		    "s" 'write-file ;save-as
 		    "A-u" 'undo-tree-visualize
 		    ;;A-y  yas-insert-snippet
 		    )
@@ -1118,14 +1122,15 @@ without the pair given, prompt the user for inseted pair."
 
 (defun latex-preview-format-scale ()
   "Set the correct scale for latex fragments.
-Images somehow are rendered p times bigger on retina screens.
-I think $p = 2(true-scale - 1) + 1$ although I don't know what's behind this.
-Counter that by dividing the factor out."
-  (let* ((true-scale 1.4) ; original 1.15, updated to match rsvg scaling
-	 (p-scale (+ (* (frame-scale-factor) (- true-scale 1)) 1)))
+Assuming what is displayed on the built-in retina screen is the true-scale,
+we need to multiply the scale on external monitors by 1.6 for a 4k and 1.4 for 1080p."
+  (let* ((true-scale 1.2)
+	 (current-res (display-pixel-height)))
     (if (equal (frame-monitor-attribute 'name)  "Built-in Retina Display")
-	(/ true-scale p-scale)
-      p-scale)))
+	true-scale
+      (if (mac-possibly-use-high-resolution-monitors-p)
+	  (/ (* true-scale 1.6 1080) (float current-res))
+	(/ (* true-scale 1.4 1080) (float current-res))))))
 
 ;; auctex
 (use-package tex-site :straight auctex
@@ -1499,7 +1504,6 @@ Otherwise call a regular 'find-file'."
   :config
   (setq citar-bibliography (list my-bib-file "~/Documents/Books/books.bib")
 	citar-library-paths (list my-bib-dir "~/Documents/Books/"))
-  (advice-add #'completing-read-multiple :override #'consult-completing-read-multiple)  ;; use consult-completing-read for enhanced interface
   (defvar citar-indicator-files-icons
     (citar-indicator-create
      :symbol (all-the-icons-faicon
